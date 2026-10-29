@@ -1,0 +1,90 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Exotique.App.ViewModels"
+             x:Class="Exotique.App.App"
+             RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <ResourceDictionary>
+      <!-- Exo 2 : l'ancienne police de l'interface de lazer, pour les titres et les nombres. -->
+      <FontFamily x:Key="DisplayFont">avares://Exotique/Assets/Fonts#Exo 2</FontFamily>
+      <FontFamily x:Key="BodyFont">avares://Exotique/Assets/Fonts#Nunito Sans</FontFamily>
+      <FontFamily x:Key="ContentControlThemeFontFamily">avares://Exotique/Assets/Fonts#Nunito Sans</FontFamily>
+
+      <!-- Nuit violette ; rose = lazer (source), bleu ciel = stable (destination). -->
+      <Color x:Key="BgColor">#16112A</Color>
+      <Color x:Key="LazerColor">#FF62A8</Color>
+      <Color x:Key="LazerDeepColor">#B8306F</Color>
+      <Color x:Key="StableColor">#63C9FF</Color>
+      <SolidColorBrush x:Key="Bg" Color="#16112A" />
+      <SolidColorBrush x:Key="Surface" Color="#1F1838" />
+      <SolidColorBrush x:Key="Raised" Color="#2A2148" />
+      <SolidColorBrush x:Key="RaisedHover" Color="#332958" />
+      <SolidColorBrush x:Key="Line" Color="#3A2F62" />
+      <SolidColorBrush x:Key="Text" Color="#F4F1FF" />
+      <SolidColorBrush x:Key="Muted" Color="#A39BC9" />
+      <SolidColorBrush x:Key="Faint" Color="#6F6796" />
+      <SolidColorBrush x:Key="Lazer" Color="#FF62A8" />
+      <SolidColorBrush x:Key="LazerHover" Color="#FF80B9" />
+      <SolidColorBrush x:Key="LazerPressed" Color="#E54D92" />
+      <SolidColorBrush x:Key="OnLazer" Color="#2A0B1E" />
+      <SolidColorBrush x:Key="Stable" Color="#63C9FF" />
+      <SolidColorBrush x:Key="Warn" Color="#FFC363" />
+      <SolidColorBrush x:Key="WarnBg" Color="#3A2C1E" />
+      <SolidColorBrush x:Key="Scrim" Color="#C20D0920" />
+      <!-- Le nom Exotique en dégradé : de la couleur de lazer à celle de stable. -->
+      <LinearGradientBrush x:Key="Wordmark" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#FF62A8" Offset="0" />
+        <GradientStop Color="#C58BFF" Offset="0.55" />
+        <GradientStop Color="#63C9FF" Offset="1" />
+      </LinearGradientBrush>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.DataTemplates>
+    <!-- Une étape de l'analyse : pastille d'état, titre, détail, et petite barre pendant qu'elle tourne. -->
+    <DataTemplate DataType="vm:AnalysisStep">
+      <StackPanel Margin="0,12" Spacing="8">
+        <Grid ColumnDefinitions="26,*,Auto">
+          <Panel Width="20" Height="20" VerticalAlignment="Center">
+            <Ellipse Stroke="{StaticResource Line}" StrokeThickness="2" IsVisible="{Binding IsPending}" />
+            <Ellipse Stroke="{StaticResource Lazer}" StrokeThickness="2.2" IsVisible="{Binding IsRunning}" />
+            <Ellipse Classes="pulse" Width="8" Height="8" Fill="{StaticResource Lazer}" IsVisible="{Binding IsRunning}" />
+            <Ellipse Fill="{StaticResource Stable}" IsVisible="{Binding IsDone}" />
+            <Path Data="M 5.5,10.5 L 8.8,13.6 L 14.6,7" Stroke="#16112A" StrokeThickness="2.3"
+                  StrokeLineCap="Round" StrokeJoin="Round" IsVisible="{Binding IsDone}" />
+          </Panel>
+          <TextBlock Grid.Column="1" Text="{Binding Title}" FontWeight="SemiBold" VerticalAlignment="Center" Margin="10,0,0,0"
+                     Classes.faint="{Binding IsPending}" />
+          <TextBlock Grid.Column="2" Text="{Binding Detail}" Classes="muted" FontSize="13" VerticalAlignment="Center" />
+        </Grid>
+        <ProgressBar Classes="step" Minimum="0" Maximum="1" Value="{Binding Fraction}" IsVisible="{Binding IsRunning}"
+                     Margin="36,0,0,0" />
+      </StackPanel>
+    </DataTemplate>
+  </Application.DataTemplates>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Dark"
+                               Accent="#FF62A8"
+                               RegionColor="#16112A"
+                               AltHigh="#16112A"
+                               AltMediumHigh="#1F1838"
+                               ChromeLow="#1F1838"
+                               ChromeMediumLow="#2A2148"
+                               ChromeMedium="#2F2650"
+                               ChromeHigh="#4A3F78"
+                               ChromeAltLow="#F4F1FF"
+                               BaseLow="#3A2F62"
+                               BaseMediumLow="#6F6796"
+                               BaseMedium="#A39BC9"
+                               BaseMediumHigh="#D6D0F0"
+                               BaseHigh="#F4F1FF"
+                               ListLow="#241C40"
+                               ListMedium="#2F2650" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://Exotique/src/App/Theme.axaml" />
+  </Application.Styles>
+</Application>

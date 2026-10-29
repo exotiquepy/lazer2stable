@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Exotique</AssemblyName>
+    <RootNamespace>Exotique</RootNamespace>
+    <Version>2.2.0</Version>
+    <Product>Exotique</Product>
+    <Company>Exotique</Company>
+    <Authors>Exotique</Authors>
+    <Copyright>© 2026 Exotique</Copyright>
+    <Description>Exotique: copies the osu!lazer beatmaps missing from osu!stable. Developed by Exotique.</Description>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <!-- Même version de Realm que osu! lazer (osu.Game.csproj), pour lire son format de base. -->
+    <RealmVersion>20.1.0</RealmVersion>
+    <AvaloniaVersion>11.3.22</AvaloniaVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests/**" />
+    <AvaloniaXaml Remove="tests/**" />
+    <None Remove="tests/**" />
+    <AvaloniaResource Include="Assets/**" />
+    <InternalsVisibleTo Include="Screens" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Realm" Version="$(RealmVersion)" />
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+</Project>

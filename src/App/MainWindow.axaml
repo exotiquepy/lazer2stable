@@ -1,0 +1,486 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:Exotique.App"
+        xmlns:vm="using:Exotique.App.ViewModels"
+        xmlns:ctrl="using:Exotique.App.Controls"
+        x:Class="Exotique.App.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Exotique"
+        Icon="avares://Exotique/Assets/app.ico"
+        Width="1220" Height="780" MinWidth="1000" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="PreferSystemChrome"
+        ExtendClientAreaTitleBarHeightHint="40">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Escape" Command="{Binding CancelExportCommand}" />
+  </Window.KeyBindings>
+
+  <Grid RowDefinitions="40,Auto,*,Auto">
+
+    <!-- ========================================================= barre de titre -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="18,0" VerticalAlignment="Center"
+                IsHitTestVisible="False">
+      <Image Source="avares://Exotique/Assets/app.png" Width="20" Height="20" />
+      <TextBlock Text="Exotique" Classes="display" FontWeight="ExtraBold" FontSize="16" Foreground="{StaticResource Wordmark}"
+                 VerticalAlignment="Center" />
+      <TextBlock Text="{app:Tr Tagline}" Classes="faint" FontSize="13" VerticalAlignment="Center" Margin="2,1,0,0" />
+    </StackPanel>
+    <!-- À droite de la barre de titre, avant les boutons de la fenêtre : langue puis signature. -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,156,0"
+                Spacing="22">
+      <StackPanel Orientation="Horizontal" Spacing="2" ToolTip.Tip="{app:Tr LanguageTip}">
+        <RadioButton Classes="lang" GroupName="lang" Content="FR" IsChecked="{Binding IsLangFr}" />
+        <RadioButton Classes="lang" GroupName="lang" Content="EN" IsChecked="{Binding IsLangEn}" />
+        <RadioButton Classes="lang" GroupName="lang" Content="RU" IsChecked="{Binding IsLangRu}" />
+      </StackPanel>
+      <ContentControl Classes="signature" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <!-- ============================================== en-tête : cercle + résumé -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="28,0,28,14" IsVisible="{Binding ShowCircle}">
+      <ctrl:ApproachCircle Grid.Column="0" Width="150" Height="150" Margin="0,0,22,0"
+                           Text="{Binding CircleText}" Approach="{Binding CircleApproach}" Burst="{Binding CircleBurst}"
+                           CircleColor="{StaticResource LazerColor}" CircleDeepColor="{StaticResource LazerDeepColor}"
+                           RingColor="{StaticResource StableColor}" NumberFont="{StaticResource DisplayFont}">
+        <ctrl:ApproachCircle.Transitions>
+          <Transitions>
+            <DoubleTransition Property="Approach" Duration="0:0:0.75" Easing="CubicEaseOut" />
+            <DoubleTransition Property="Burst" Duration="0:0:0.9" Easing="CubicEaseOut" />
+          </Transitions>
+        </ctrl:ApproachCircle.Transitions>
+      </ctrl:ApproachCircle>
+
+      <!-- Résumé : liste à valider -->
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding IsReview}" MaxWidth="560"
+                  HorizontalAlignment="Left">
+        <TextBlock Classes="h1" Text="{Binding Headline}" TextWrapping="Wrap" />
+        <TextBlock Classes="lead" Text="{Binding SubHeadline}" />
+      </StackPanel>
+
+      <!-- Résumé : copie en cours -->
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding IsExporting}" MaxWidth="620"
+                  HorizontalAlignment="Left">
+        <TextBlock Classes="h1" Text="{Binding ExportHeadline}" />
+        <TextBlock Text="{Binding CurrentExport.FullName, FallbackValue=''}" FontSize="16" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" />
+        <TextBlock Classes="lead" Text="{Binding ExportDetail}" />
+      </StackPanel>
+
+      <!-- Résumé : bilan -->
+      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding IsDone}" MaxWidth="620"
+                  HorizontalAlignment="Left">
+        <TextBlock Classes="h1" Text="{Binding DoneHeadline}" />
+        <TextBlock Classes="lead" Text="{Binding DoneDetail}" />
+        <TextBlock Classes="lead" Text="{Binding DoneCollections}" IsVisible="{Binding DoneCollections, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+      </StackPanel>
+
+      <!-- Trajet lazer → stable -->
+      <Border Grid.Column="2" VerticalAlignment="Center" Margin="24,0,0,0" IsVisible="{Binding ShowLocations}">
+        <Grid ColumnDefinitions="14,Auto,Auto" RowDefinitions="Auto,18,Auto">
+          <Ellipse Grid.Row="0" Grid.Column="0" Width="11" Height="11" Fill="{StaticResource Lazer}" VerticalAlignment="Center" />
+          <Rectangle Grid.Row="1" Grid.Column="0" Width="2" Fill="{StaticResource Line}" HorizontalAlignment="Center" Margin="0,-4" />
+          <Ellipse Grid.Row="2" Grid.Column="0" Width="11" Height="11" Fill="{StaticResource Stable}" VerticalAlignment="Center" />
+
+          <TextBlock Grid.Row="0" Grid.Column="1" Text="lazer" Classes="display" FontWeight="Bold" Margin="10,0,12,0"
+                     VerticalAlignment="Center" Width="46" />
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="stable" Classes="display" FontWeight="Bold" Margin="10,0,12,0"
+                     VerticalAlignment="Center" Width="46" />
+
+          <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal">
+            <TextBlock Text="{Binding LazerPathText}" Classes="muted" FontSize="12.5" TextTrimming="PrefixCharacterEllipsis"
+                       VerticalAlignment="Center" MaxWidth="300" ToolTip.Tip="{Binding LazerPathText}" />
+            <Button Classes="link" Content="{app:Tr Change}" Command="{Binding ChangeLazerCommand}"
+                    IsEnabled="{Binding CanChangeFolders}" Margin="8,0,0,0" />
+          </StackPanel>
+          <StackPanel Grid.Row="2" Grid.Column="2" Orientation="Horizontal">
+            <TextBlock Text="{Binding StablePathText}" Classes="muted" FontSize="12.5" TextTrimming="PrefixCharacterEllipsis"
+                       VerticalAlignment="Center" MaxWidth="300" ToolTip.Tip="{Binding StablePathText}" />
+            <Button Classes="link" Content="{app:Tr Change}" Command="{Binding ChangeStableCommand}"
+                    IsEnabled="{Binding CanChangeFolders}" Margin="8,0,0,0" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ================================================================ analyse -->
+    <StackPanel Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsAnalyzing}" VerticalAlignment="Center"
+                HorizontalAlignment="Center" Spacing="18" Margin="0,0,0,40">
+      <ctrl:ApproachCircle Width="230" Height="230" Text="{Binding CircleText}" ProgressValue="{Binding AnalysisProgress}"
+                           CircleColor="{StaticResource LazerColor}" CircleDeepColor="{StaticResource LazerDeepColor}"
+                           RingColor="{StaticResource StableColor}" NumberFont="{StaticResource DisplayFont}">
+        <ctrl:ApproachCircle.Transitions>
+          <Transitions>
+            <DoubleTransition Property="ProgressValue" Duration="0:0:0.35" Easing="CubicEaseOut" />
+          </Transitions>
+        </ctrl:ApproachCircle.Transitions>
+      </ctrl:ApproachCircle>
+
+      <TextBlock Classes="h2" Text="{app:Tr AnalyzingTitle}" HorizontalAlignment="Center" />
+
+      <Border Background="{StaticResource Surface}" CornerRadius="16" Padding="22,10" Width="540">
+        <StackPanel>
+          <ContentControl Content="{Binding LazerStep}" />
+          <Rectangle Height="1" Fill="{StaticResource Line}" Opacity="0.6" />
+          <ContentControl Content="{Binding SongsStep}" />
+          <Rectangle Height="1" Fill="{StaticResource Line}" Opacity="0.6" />
+          <ContentControl Content="{Binding CompareStep}" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="faint" FontSize="12.5" HorizontalAlignment="Center" TextAlignment="Center" Width="520" TextWrapping="Wrap"
+                 Text="{app:Tr AnalyzingNote}" />
+    </StackPanel>
+
+    <!-- ============================================================ réglages -->
+    <ScrollViewer Grid.Row="1" Grid.RowSpan="2" IsVisible="{Binding IsSetup}">
+      <StackPanel Width="640" Margin="0,40,0,40" Spacing="18" HorizontalAlignment="Center">
+        <TextBlock Classes="h1" Text="{app:Tr SetupTitle}" />
+        <TextBlock Classes="lead"
+                   Text="{app:Tr SetupLead}" />
+
+        <Border Background="{StaticResource Surface}" CornerRadius="14" Padding="22" Margin="0,8,0,0">
+          <Grid ColumnDefinitions="18,*,Auto" RowDefinitions="Auto,26,Auto">
+            <Ellipse Grid.Row="0" Width="12" Height="12" Fill="{StaticResource Lazer}" VerticalAlignment="Top" Margin="0,5,0,0" />
+            <Rectangle Grid.Row="1" Width="2" Fill="{StaticResource Line}" HorizontalAlignment="Center" Margin="0,-8" />
+            <Ellipse Grid.Row="2" Width="12" Height="12" Fill="{StaticResource Stable}" VerticalAlignment="Top" Margin="0,5,0,0" />
+
+            <StackPanel Grid.Row="0" Grid.Column="1" Margin="14,0" Spacing="3">
+              <TextBlock Text="osu! lazer" Classes="display" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="{Binding LazerPathText}" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Row="0" Grid.Column="2" Classes="ghost" Content="{app:Tr ChooseFolder}" VerticalAlignment="Top"
+                    Command="{Binding ChangeLazerCommand}" />
+
+            <StackPanel Grid.Row="2" Grid.Column="1" Margin="14,0" Spacing="3">
+              <TextBlock Text="osu! stable" Classes="display" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="{Binding StablePathText}" Classes="muted" TextWrapping="Wrap" />
+            </StackPanel>
+            <Button Grid.Row="2" Grid.Column="2" Classes="ghost" Content="{app:Tr ChooseFolder}" VerticalAlignment="Top"
+                    Command="{Binding ChangeStableCommand}" />
+          </Grid>
+        </Border>
+
+        <Border Background="{StaticResource WarnBg}" CornerRadius="12" Padding="16,12"
+                IsVisible="{Binding SetupError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+          <TextBlock Text="{Binding SetupError}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" />
+        </Border>
+
+        <Button Classes="primary" Content="{app:Tr AnalyzeBoth}" Command="{Binding AnalyzeCommand}"
+                HorizontalAlignment="Left" Margin="0,6,0,0" />
+        <ContentControl Classes="signature" HorizontalAlignment="Left" Margin="2,30,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ===================================================== liste à valider -->
+    <Grid Grid.Row="2" ColumnDefinitions="262,*" Margin="20,0,28,0" IsVisible="{Binding IsReview}">
+
+      <!-- Colonne gauche : onglets, modes, options de copie -->
+      <ScrollViewer Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="2" Margin="0,0,12,12">
+          <RadioButton Classes="tab" GroupName="tabs" Content="{app:Tr TabToCopy}" Tag="{Binding ToCopyCountText}"
+                       BorderBrush="{StaticResource Lazer}" IsChecked="{Binding IsToCopyTab}" />
+          <RadioButton Classes="tab" GroupName="tabs" Content="{app:Tr TabPresent}" Tag="{Binding PresentCountText}"
+                       BorderBrush="{StaticResource Stable}" IsChecked="{Binding IsPresentTab}" />
+          <RadioButton Classes="tab" GroupName="tabs" Content="{app:Tr TabIgnored}" Tag="{Binding IgnoredCountText}"
+                       BorderBrush="{StaticResource Warn}" IsChecked="{Binding IsIgnoredTab}" />
+
+          <TextBlock Classes="group" Text="{app:Tr GroupModes}" Margin="4,18,0,8" />
+          <WrapPanel ItemSpacing="5" LineSpacing="5" Margin="2,0,0,0">
+            <ToggleButton Classes="chip" Content="osu!" IsChecked="{Binding ShowOsu}" />
+            <ToggleButton Classes="chip" Content="taiko" IsChecked="{Binding ShowTaiko}" />
+            <ToggleButton Classes="chip" Content="catch" IsChecked="{Binding ShowCatch}" />
+            <ToggleButton Classes="chip" Content="mania" IsChecked="{Binding ShowMania}" />
+          </WrapPanel>
+
+          <TextBlock Classes="group" Text="{app:Tr GroupFormat}" Margin="4,20,0,4" />
+          <RadioButton Classes="option" GroupName="format" IsChecked="{Binding FolderFormatChosen}"
+                       ToolTip.Tip="{app:Tr FormatFoldersTip}">
+            <StackPanel Spacing="1">
+              <TextBlock Text="{app:Tr FormatFolders}" TextWrapping="Wrap" />
+              <TextBlock Text="{app:Tr FormatFoldersHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Classes="option" GroupName="format" IsChecked="{Binding OszFormatChosen}"
+                       ToolTip.Tip="{app:Tr FormatOszTip}">
+            <StackPanel Spacing="1">
+              <TextBlock Text="{app:Tr FormatOsz}" TextWrapping="Wrap" />
+              <TextBlock Text="{app:Tr FormatOszHint}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+            </StackPanel>
+          </RadioButton>
+
+          <TextBlock Classes="group" Text="{app:Tr GroupCollections}" Margin="4,18,0,4" />
+          <CheckBox IsChecked="{Binding ExportCollections}" IsEnabled="{Binding CollectionsAvailable}">
+            <TextBlock Text="{Binding CollectionsLabel}" TextWrapping="Wrap" />
+          </CheckBox>
+          <TextBlock Text="{Binding CollectionsDetail}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" Margin="30,2,0,0"
+                     LineHeight="18" />
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Liste -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+          <TextBox Classes="search" Text="{Binding SearchText}" Watermark="{app:Tr SearchWatermark}" />
+          <ComboBox Grid.Column="1" Width="232" Margin="10,0,0,0" ItemsSource="{Binding SortOptions}"
+                    SelectedItem="{Binding Sort}" VerticalAlignment="Stretch" ToolTip.Tip="{app:Tr SortTip}" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0" IsVisible="{Binding IsToCopyTab}">
+            <Button Classes="ghost" Content="{app:Tr CheckAll}" Command="{Binding SelectAllVisibleCommand}"
+                    ToolTip.Tip="{app:Tr CheckAllTip}" />
+            <Button Classes="ghost" Content="{app:Tr UncheckAll}" Command="{Binding SelectNoneVisibleCommand}"
+                    ToolTip.Tip="{app:Tr UncheckAllTip}" />
+          </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
+          <Grid>
+            <ListBox x:Name="MapList" Classes="maps" ItemsSource="{Binding VisibleItems}" SelectionMode="Single"
+                     KeyDown="OnListKeyDown">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:MapItemViewModel">
+                  <Border Background="Transparent" Padding="10,8,16,8" Tapped="OnRowTapped">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                      <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" IsVisible="{Binding IsCopyCandidate}"
+                                VerticalAlignment="Center" Margin="2,0,6,0" MinWidth="0" />
+
+                      <Border Grid.Column="1" Width="112" Height="63" CornerRadius="8" ClipToBounds="True">
+                        <Border.Background>
+                          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#3A2556" Offset="0" />
+                            <GradientStop Color="#22304F" Offset="1" />
+                          </LinearGradientBrush>
+                        </Border.Background>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                      </Border>
+
+                      <StackPanel Grid.Column="2" Margin="16,0,12,0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding Item.Set.TitleUnicode}" />
+                        <TextBlock Text="{Binding ArtistLine}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,5,0,0" IsVisible="{Binding !IsIgnored}">
+                          <ItemsControl ItemsSource="{Binding Difficulties}" VerticalAlignment="Center">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:DifficultyDot">
+                                <Ellipse Width="11" Height="11" Fill="{Binding Fill}" Stroke="{Binding Stroke}"
+                                         StrokeThickness="1.2" ToolTip.Tip="{Binding Tip}" />
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <TextBlock Text="{Binding ExtraDifficulties}" Classes="faint" FontSize="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding Modes}" Classes="faint" FontSize="12" VerticalAlignment="Center" />
+                          <TextBlock Text="{Binding ReasonText}" Foreground="{StaticResource Stable}" FontSize="12"
+                                     VerticalAlignment="Center" Margin="6,0,0,0" IsVisible="{Binding IsPresent}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding ReasonText}" Foreground="{StaticResource Warn}" FontSize="12.5"
+                                   TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding IsIgnored}" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Column="3" Text="{Binding StatusText}" Foreground="{Binding StatusBrush}"
+                                 Classes="display" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"
+                                 Margin="0,0,18,0" IsVisible="{Binding HasStatus}" />
+
+                      <TextBlock Grid.Column="4" Text="{Binding SizeText}" Classes="display" FontWeight="SemiBold" FontSize="13.5"
+                                 VerticalAlignment="Center" TextAlignment="Right" Width="76" IsVisible="{Binding IsCopyCandidate}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="{Binding EmptyListText}" Classes="lead" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" MaxWidth="420" IsVisible="{Binding IsListEmpty}" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- ===================================================== copie en cours -->
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*" Margin="28,0,28,0" IsVisible="{Binding IsExporting}">
+      <StackPanel Grid.Column="0" Width="360" Spacing="12" Margin="0,0,28,0">
+        <TextBlock Classes="group" Text="{app:Tr InProgress}" />
+        <Border Width="360" Height="202" CornerRadius="14" ClipToBounds="True">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+              <GradientStop Color="#3A2556" Offset="0" />
+              <GradientStop Color="#22304F" Offset="1" />
+            </LinearGradientBrush>
+          </Border.Background>
+          <Image Source="{Binding CurrentExport.Thumbnail, FallbackValue={x:Null}}" Stretch="UniformToFill" />
+        </Border>
+        <TextBlock Text="{Binding CurrentExport.Title, FallbackValue=''}" FontWeight="Bold" FontSize="16" TextTrimming="CharacterEllipsis" />
+        <TextBlock Text="{Binding CurrentExport.ArtistLine, FallbackValue=''}" Classes="muted" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+        <TextBlock Classes="group" Text="{app:Tr AlreadyCopied}" />
+        <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
+          <ListBox Classes="maps log" ItemsSource="{Binding RecentlyExported}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:MapItemViewModel">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="10,6,16,6">
+                  <Border Width="64" Height="36" CornerRadius="6" ClipToBounds="True" Background="{StaticResource Raised}">
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Margin="12,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Artist}" Classes="muted" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Text="{Binding SizeText}" Classes="faint" FontSize="12.5" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <!-- ================================================================ bilan -->
+    <ScrollViewer Grid.Row="2" Margin="28,0,28,0" IsVisible="{Binding IsDone}">
+      <StackPanel Spacing="16" MaxWidth="820" HorizontalAlignment="Left">
+        <Border Background="{StaticResource Surface}" CornerRadius="14" Padding="26,22">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="{app:Tr NextTitle}" />
+            <TextBlock Classes="lead" Text="{Binding NextStepText}" />
+            <TextBlock Classes="lead" Text="{app:Tr NextUnchecked}" />
+          </StackPanel>
+        </Border>
+
+        <Border Background="{StaticResource Surface}" CornerRadius="14" Padding="26,22" IsVisible="{Binding HasFailures}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="{app:Tr ToCheck}" />
+            <ItemsControl ItemsSource="{Binding DoneProblems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <TextBlock Text="{Binding}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" Margin="0,3" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="muted" FontSize="13" Text="{app:Tr ToCheckNote}" Margin="0,4,0,0" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ============================================================ bas de page -->
+    <StackPanel Grid.Row="3" Margin="28,14,28,20" Spacing="12">
+      <!-- osu! ouvert : on prévient, et on propose de le fermer. -->
+      <Border Background="{StaticResource WarnBg}" CornerRadius="12" Padding="16,10" IsVisible="{Binding ShowOsuBanner}">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel VerticalAlignment="Center" Spacing="2" Margin="0,0,16,0">
+            <TextBlock Foreground="{StaticResource Warn}" FontWeight="Bold" Text="{Binding OsuRunningText}" />
+            <TextBlock Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="13" IsVisible="{Binding !OsuCloseFailed}"
+                       Text="{app:Tr BannerExplain}" />
+            <TextBlock Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="13" IsVisible="{Binding OsuCloseFailed}"
+                       Text="{app:Tr BannerFailed}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Classes="warn" Content="{app:Tr ForceClose}" Command="{Binding ForceCloseOsuCommand}"
+                    IsVisible="{Binding OsuCloseFailed}" IsEnabled="{Binding !IsClosingOsu}" />
+            <Button Classes="warn" Command="{Binding CloseOsuCommand}" IsEnabled="{Binding !IsClosingOsu}">
+              <Panel>
+                <TextBlock Text="{app:Tr CloseOsu}" IsVisible="{Binding !IsClosingOsu}" />
+                <TextBlock Text="{app:Tr Closing}" IsVisible="{Binding IsClosingOsu}" />
+              </Panel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Liste : sélection + bouton de copie -->
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsReview}">
+        <TextBlock Text="{Binding SelectionText}" Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,20,0" />
+        <Button Grid.Column="1" Classes="primary" Content="{Binding ExportButtonText}" Command="{Binding AskExportCommand}"
+                IsEnabled="{Binding CanExport}" />
+      </Grid>
+
+      <!-- Copie : arrêt -->
+      <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsExporting}">
+        <TextBlock Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Text="{app:Tr StopNote}" />
+        <Button Grid.Column="1" Classes="ghost" Content="{app:Tr StopButton}" Command="{Binding StopExportCommand}"
+                IsEnabled="{Binding !IsStopping}" />
+      </Grid>
+
+      <!-- Bilan : actions -->
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" IsVisible="{Binding IsDone}">
+        <Button Classes="ghost" Content="{app:Tr BackToList}" Command="{Binding BackToListCommand}" />
+        <Button Classes="ghost" Content="{app:Tr OpenReport}" Command="{Binding OpenReportCommand}" />
+        <Button Classes="ghost" Content="{app:Tr OpenSongs}" Command="{Binding OpenSongsCommand}" />
+        <Button Classes="primary" Content="{app:Tr LaunchStable}" Command="{Binding LaunchStableCommand}"
+                IsVisible="{Binding CanLaunchStable}" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- ======================================================== confirmation -->
+    <Grid Grid.Row="0" Grid.RowSpan="4" Background="{StaticResource Scrim}" IsVisible="{Binding IsConfirmOpen}">
+      <Border Background="{StaticResource Surface}" CornerRadius="18" Padding="30,28" Width="560"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{StaticResource Line}" BorderThickness="1">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="h2" Text="{Binding ConfirmTitle}" />
+          <TextBlock Classes="lead" Text="{Binding ConfirmBody}" />
+          <StackPanel Spacing="4">
+            <TextBlock Classes="group" Text="{app:Tr Destination}" Margin="0" />
+            <TextBlock Text="{Binding ConfirmDestination}" Foreground="{StaticResource Stable}" TextWrapping="Wrap" />
+          </StackPanel>
+          <TextBlock Classes="lead" Text="{Binding ConfirmCollections}"
+                     IsVisible="{Binding ConfirmCollections, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <Border Background="{StaticResource WarnBg}" CornerRadius="10" Padding="14,10" IsVisible="{Binding OsuRunning}">
+            <StackPanel Spacing="4">
+              <TextBlock Foreground="{StaticResource Warn}" FontWeight="Bold" Text="{Binding OsuRunningText}" />
+              <TextBlock Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="13" IsVisible="{Binding !OsuCloseFailed}"
+                         Text="{app:Tr DialogOsuExplain}" />
+              <TextBlock Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="13" IsVisible="{Binding OsuCloseFailed}"
+                         Text="{app:Tr DialogOsuFailed}" />
+              <Button Classes="warn" Content="{app:Tr ForceClose}" Command="{Binding ForceCloseOsuCommand}" HorizontalAlignment="Left"
+                      Margin="0,4,0,0" IsVisible="{Binding OsuCloseFailed}" IsEnabled="{Binding !IsClosingOsu}" />
+            </StackPanel>
+          </Border>
+
+          <!-- osu! fermé : copie directe -->
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,10,0,0" IsVisible="{Binding !OsuRunning}">
+            <Button Classes="ghost" Content="{app:Tr Cancel}" Command="{Binding CancelExportCommand}" IsCancel="True" />
+            <Button Classes="primary" Content="{Binding ExportButtonText}" Command="{Binding ConfirmExportCommand}" IsDefault="True" />
+          </StackPanel>
+
+          <!-- osu! ouvert : le fermer d'abord, ou copier quand même -->
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,10,0,0" IsVisible="{Binding OsuRunning}">
+            <Button Classes="ghost" Content="{app:Tr Cancel}" Command="{Binding CancelExportCommand}" />
+            <Button Classes="ghost" Content="{app:Tr CopyWithoutClosing}" Command="{Binding ConfirmExportCommand}"
+                    ToolTip.Tip="{app:Tr CopyWithoutClosingTip}" />
+            <Button Classes="primary" Command="{Binding CloseOsuThenExportCommand}" IsEnabled="{Binding !IsClosingOsu}">
+              <Panel>
+                <TextBlock Text="{app:Tr CloseThenCopy}" IsVisible="{Binding !IsClosingOsu}" />
+                <TextBlock Text="{app:Tr ClosingOsu}" IsVisible="{Binding IsClosingOsu}" />
+              </Panel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ============================================================ erreur -->
+    <Grid Grid.Row="0" Grid.RowSpan="4" Background="{StaticResource Scrim}" IsVisible="{Binding IsErrorOpen}">
+      <Border Background="{StaticResource Surface}" CornerRadius="18" Padding="30,28" Width="560"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{StaticResource Line}" BorderThickness="1">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="h2" Text="{app:Tr ErrorTitle}" />
+          <TextBlock Classes="lead" Text="{Binding ErrorText}" />
+          <TextBlock Classes="lead" Text="{app:Tr ErrorBody}" />
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Classes="ghost" Content="{app:Tr OpenErrorLog}" Command="{Binding OpenErrorLogCommand}"
+                    IsVisible="{Binding ErrorLogPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            <Button Classes="primary" Content="{app:Tr Continue}" Command="{Binding DismissErrorCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

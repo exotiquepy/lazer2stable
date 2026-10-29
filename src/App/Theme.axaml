@@ -1,0 +1,332 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="using:Exotique.App"
+        xmlns:ctrl="using:Exotique.App.Controls"
+        xmlns:core="using:Exotique.Core">
+
+  <!-- ============================================================ texte -->
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{StaticResource Bg}" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="FontFamily" Value="{StaticResource BodyFont}" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+
+  <Style Selector="TextBlock.display">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+  </Style>
+
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="30" />
+    <Setter Property="LineHeight" Value="36" />
+  </Style>
+
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="22" />
+  </Style>
+
+  <Style Selector="TextBlock.group">
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="Margin" Value="4,0,0,8" />
+  </Style>
+
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+  </Style>
+
+  <Style Selector="TextBlock.faint">
+    <Setter Property="Foreground" Value="{StaticResource Faint}" />
+  </Style>
+
+  <Style Selector="TextBlock.lead">
+    <Setter Property="FontSize" Value="15.5" />
+    <Setter Property="LineHeight" Value="23" />
+    <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- ========================================================== boutons -->
+
+  <Style Selector="Button">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="FontFamily" Value="{StaticResource DisplayFont}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="16,9" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{StaticResource Lazer}" />
+    <Setter Property="Foreground" Value="{StaticResource OnLazer}" />
+    <Setter Property="FontSize" Value="15.5" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Padding" Value="24,12" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource LazerHover}" />
+    <Setter Property="Foreground" Value="{StaticResource OnLazer}" />
+  </Style>
+  <Style Selector="Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource LazerPressed}" />
+    <Setter Property="Foreground" Value="{StaticResource OnLazer}" />
+  </Style>
+  <Style Selector="Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+    <Setter Property="Foreground" Value="{StaticResource Faint}" />
+  </Style>
+
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource RaisedHover}" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+
+  <Style Selector="Button.warn">
+    <Setter Property="Background" Value="#4A3824" />
+    <Setter Property="Foreground" Value="{StaticResource Warn}" />
+    <Setter Property="FontSize" Value="13.5" />
+    <Setter Property="Padding" Value="14,8" />
+  </Style>
+  <Style Selector="Button.warn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#5C452B" />
+    <Setter Property="Foreground" Value="{StaticResource Warn}" />
+  </Style>
+  <Style Selector="Button.warn:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#3A2C1E" />
+    <Setter Property="Foreground" Value="#9C7E52" />
+  </Style>
+
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Stable}" />
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+    <Setter Property="Foreground" Value="{StaticResource Stable}" />
+  </Style>
+
+  <!-- ====================================== onglets de la colonne gauche -->
+
+  <Style Selector="RadioButton.tab">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_Bg" Background="Transparent" CornerRadius="10" Padding="0,9,14,9">
+          <Grid ColumnDefinitions="4,*,Auto">
+            <Border x:Name="PART_Bar" Grid.Column="0" CornerRadius="2" Background="{TemplateBinding BorderBrush}"
+                    Opacity="0" Margin="0,2" />
+            <ContentPresenter Grid.Column="1" Margin="12,0,8,0" Content="{TemplateBinding Content}"
+                              VerticalAlignment="Center" />
+            <ContentPresenter Grid.Column="2" x:Name="PART_Count" Content="{TemplateBinding Tag}"
+                              FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="15"
+                              Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+          </Grid>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.tab:pointerover /template/ Border#PART_Bg">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+  </Style>
+  <Style Selector="RadioButton.tab:checked /template/ Border#PART_Bg">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+  </Style>
+  <Style Selector="RadioButton.tab:checked /template/ Border#PART_Bar">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="RadioButton.tab:checked /template/ ContentPresenter#PART_Count">
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+  <Style Selector="RadioButton.tab:focus-visible /template/ Border#PART_Bg">
+    <Setter Property="BorderBrush" Value="{StaticResource Stable}" />
+    <Setter Property="BorderThickness" Value="1.5" />
+  </Style>
+
+  <!-- ===================================================== puces de mode -->
+
+  <Style Selector="ToggleButton.chip">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_Bg" CornerRadius="14" Padding="10,4" BorderThickness="1.5"
+                BorderBrush="{StaticResource Line}" Background="Transparent">
+          <ContentPresenter x:Name="PART_Text" Content="{TemplateBinding Content}" Foreground="{StaticResource Faint}"
+                            FontFamily="{StaticResource DisplayFont}" FontWeight="SemiBold" FontSize="12.5" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ Border#PART_Bg">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Stable}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_Text">
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:pointerover /template/ Border#PART_Bg">
+    <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+  </Style>
+  <Style Selector="ToggleButton.chip:focus-visible /template/ Border#PART_Bg">
+    <Setter Property="BorderBrush" Value="{StaticResource Text}" />
+  </Style>
+
+  <!-- ============================================================ liste -->
+
+  <Style Selector="ListBox.maps">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="6" />
+  </Style>
+  <Style Selector="ListBox.maps ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,1" />
+    <Setter Property="CornerRadius" Value="10" />
+  </Style>
+  <Style Selector="ListBox.maps ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+  </Style>
+  <Style Selector="ListBox.maps ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#251D44" />
+  </Style>
+  <Style Selector="ListBox.maps ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+  </Style>
+  <Style Selector="ListBox.maps ListBoxItem:selected:focus /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="#251D44" />
+  </Style>
+
+  <Style Selector="ListBox.log ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
+
+  <!-- ===================================================== champs, etc. -->
+
+  <Style Selector="TextBox.search">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="14,9" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="TextBox.search:pointerover /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Muted}" />
+  </Style>
+  <Style Selector="TextBox.search:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Stable}" />
+  </Style>
+
+  <Style Selector="ComboBox">
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Padding" Value="12,8" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="Background" Value="{StaticResource Raised}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Line}" />
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+
+  <Style Selector="CheckBox, RadioButton.option">
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- ============================================== étapes de l'analyse -->
+
+  <Style Selector="ProgressBar.step">
+    <Setter Property="MinHeight" Value="4" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Background" Value="{StaticResource Line}" />
+    <Setter Property="Foreground" Value="{StaticResource Wordmark}" />
+  </Style>
+
+  <!-- Point de l'étape en cours : il bat doucement. -->
+  <Style Selector="Ellipse.pulse">
+    <Style.Animations>
+      <Animation Duration="0:0:1.2" IterationCount="Infinite">
+        <KeyFrame Cue="0%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+        <KeyFrame Cue="50%">
+          <Setter Property="Opacity" Value="0.25" />
+        </KeyFrame>
+        <KeyFrame Cue="100%">
+          <Setter Property="Opacity" Value="1" />
+        </KeyFrame>
+      </Animation>
+    </Style.Animations>
+  </Style>
+
+  <!-- ================================================ choix de la langue -->
+
+  <Style Selector="RadioButton.lang">
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border x:Name="PART_Bg" Background="Transparent" CornerRadius="6" Padding="7,3">
+          <StackPanel Spacing="2">
+            <ContentPresenter x:Name="PART_Text" Content="{TemplateBinding Content}" HorizontalAlignment="Center"
+                              FontFamily="{StaticResource DisplayFont}" FontWeight="Bold" FontSize="11.5"
+                              Foreground="{StaticResource Faint}" />
+            <Border x:Name="PART_Line" Height="2" CornerRadius="1" Background="{StaticResource Wordmark}" Opacity="0" />
+          </StackPanel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+  <Style Selector="RadioButton.lang:pointerover /template/ Border#PART_Bg">
+    <Setter Property="Background" Value="{StaticResource Surface}" />
+  </Style>
+  <Style Selector="RadioButton.lang:checked /template/ ContentPresenter#PART_Text">
+    <Setter Property="Foreground" Value="{StaticResource Text}" />
+  </Style>
+  <Style Selector="RadioButton.lang:checked /template/ Border#PART_Line">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="RadioButton.lang:focus-visible /template/ Border#PART_Bg">
+    <Setter Property="BorderBrush" Value="{StaticResource Stable}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- ======================================================= signature -->
+
+  <Style Selector="ContentControl.signature">
+    <Setter Property="IsHitTestVisible" Value="False" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <Rectangle Width="18" Height="2" Fill="{StaticResource Wordmark}" VerticalAlignment="Center" Margin="0,1,4,0" />
+          <TextBlock Text="{app:Tr DevelopedBy}" FontSize="12.5" Foreground="{StaticResource Faint}" VerticalAlignment="Center" />
+          <TextBlock Text="Exotique" FontFamily="{StaticResource DisplayFont}" FontWeight="ExtraBold" FontSize="14"
+                     Foreground="{StaticResource Wordmark}" VerticalAlignment="Center" />
+          <TextBlock Text="{x:Static core:AppInfo.DisplayVersion}" FontSize="12" Foreground="{StaticResource Faint}"
+                     VerticalAlignment="Center" Margin="4,1,0,0" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <!-- ============================================ cercle d'approche -->
+
+</Styles>
