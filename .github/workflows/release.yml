@@ -5,9 +5,15 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      clean_start:
+        description: "Clean start: delete ALL existing releases, tags and past workflow runs before publishing"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   release:
@@ -28,6 +34,27 @@ jobs:
           if [ -n "$patch" ] && [ "$patch" != "0" ]; then tag="v$major.$minor.$patch"; else tag="v$major.$minor"; fi
           echo "Version $version, tag $tag"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Clean start
+        if: ${{ inputs.clean_start }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for tag in $(gh release list --limit 200 --json tagName --jq '.[].tagName'); do
+            echo "Deleting release $tag"
+            gh release delete "$tag" --cleanup-tag --yes
+          done
+          for tag in $(gh api --paginate "repos/$GITHUB_REPOSITORY/tags?per_page=100" --jq '.[].name'); do
+            echo "Deleting tag $tag"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$tag"
+          done
+          for id in $(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" --jq '.workflow_runs[].id'); do
+            [ "$id" = "$GITHUB_RUN_ID" ] && continue
+            echo "Deleting workflow run $id"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/runs/$id" || echo "  (could not delete run $id)"
+          done
 
       - name: Stop if this release already exists
         shell: bash
