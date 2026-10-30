@@ -55,22 +55,36 @@ public partial class MainWindow : Window, IShell
         return result.Count > 0 ? result[0].TryGetLocalPath() : null;
     }
 
-    /// <summary>Un clic n'importe où sur la ligne coche ou décoche la map.</summary>
+    /// <summary>Un clic n'importe où sur la ligne coche ou décoche la map ou le score.</summary>
     private void OnRowTapped(object? sender, TappedEventArgs e)
     {
-        if (sender is not Control { DataContext: MapItemViewModel item } || !item.IsCopyCandidate) return;
+        if (sender is not Control { DataContext: { } item }) return;
 
         // Le clic sur la case elle-même est déjà géré par la case.
         if (e.Source is Visual v && v.FindAncestorOfType<CheckBox>(includeSelf: true) != null) return;
 
-        item.IsSelected = !item.IsSelected;
+        Toggle(item);
     }
 
-    /// <summary>Espace coche ou décoche la map sous le curseur clavier.</summary>
+    /// <summary>Espace coche ou décoche la ligne sous le curseur clavier.</summary>
     private void OnListKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Space || sender is not ListBox { SelectedItem: MapItemViewModel item } || !item.IsCopyCandidate) return;
-        item.IsSelected = !item.IsSelected;
-        e.Handled = true;
+        if (e.Key != Key.Space || sender is not ListBox { SelectedItem: { } item }) return;
+        e.Handled = Toggle(item);
+    }
+
+    private static bool Toggle(object item)
+    {
+        switch (item)
+        {
+            case MapItemViewModel { IsCopyCandidate: true } map:
+                map.IsSelected = !map.IsSelected;
+                return true;
+            case ScoreItemViewModel { IsCopyCandidate: true } score:
+                score.IsSelected = !score.IsSelected;
+                return true;
+            default:
+                return false;
+        }
     }
 }

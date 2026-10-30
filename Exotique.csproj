@@ -7,12 +7,12 @@
     <LangVersion>latest</LangVersion>
     <AssemblyName>Exotique</AssemblyName>
     <RootNamespace>Exotique</RootNamespace>
-    <Version>2.2.0</Version>
+    <Version>2.3.0</Version>
     <Product>Exotique</Product>
     <Company>Exotique</Company>
     <Authors>Exotique</Authors>
     <Copyright>© 2026 Exotique</Copyright>
-    <Description>Exotique: copies the osu!lazer beatmaps missing from osu!stable. Developed by Exotique.</Description>
+    <Description>Exotique: copies the osu!lazer beatmaps and scores missing from osu!stable. Developed by Exotique.</Description>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
     <ApplicationManifest>app.manifest</ApplicationManifest>

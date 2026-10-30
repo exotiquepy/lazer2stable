@@ -38,6 +38,9 @@ internal static class Shots
         // La langue mémorisée dans les réglages l'emporte au démarrage : on la fixe là aussi.
         var saved = Settings.Load();
         saved.Language = Loc.Code(lang);
+        saved.CopyBeatmaps = true;
+        saved.CopyScores = true;
+        saved.ScoresIncludeOthers = false;
         saved.Save();
         Loc.I.Lang = lang;
 
@@ -74,6 +77,32 @@ internal static class Shots
             vm.TestSetLanguage(Lang.Fr);
             Pump(0.5);
         }
+
+        // Scores : à copier, déjà là, ignorés, puis « seulement les scores ».
+        vm.TestSetSection(Section.Scores);
+        Pump(1.2);
+        Save(w, outDir, "3c-scores");
+        vm.SelectedScoreTab = ListTab.Present;
+        Pump(0.8);
+        Save(w, outDir, "3d-scores-deja-la");
+        vm.SelectedScoreTab = ListTab.Ignored;
+        Pump(0.8);
+        Save(w, outDir, "3e-scores-ignores");
+        vm.SelectedScoreTab = ListTab.ToCopy;
+        vm.IncludeMaps = false;
+        Pump(0.8);
+        Save(w, outDir, "3f-scores-seulement");
+        vm.TestOpenConfirm();
+        Pump(0.5);
+        Save(w, outDir, "3g-confirmation-scores");
+        vm.CancelExportCommand.Execute(null);
+        vm.IncludeMaps = true;
+        vm.TestSetSection(Section.Maps);
+        vm.IncludeScores = false;
+        Pump(0.6);
+        Save(w, outDir, "3h-maps-sans-scores");
+        vm.IncludeScores = true;
+        Pump(0.4);
 
         vm.SearchText = "lumen";
         Pump(0.8);
@@ -117,7 +146,7 @@ internal static class Shots
         Pump(1.2);
         Save(w, outDir, "8-copie");
 
-        vm.TestShowDone(48);
+        vm.TestShowDone(48, 17);
         Pump(1.5);
         Save(w, outDir, "9-bilan");
 

@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Realm" Version="20.1.0" />
+    <Compile Include="../../src/Core/OsuScore.cs" />
   </ItemGroup>
 </Project>

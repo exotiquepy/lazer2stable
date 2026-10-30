@@ -201,4 +201,12 @@ public static class Palette
     public static readonly IBrush Line = new SolidColorBrush(Color.Parse("#4A3F78"));
     public static readonly IBrush Warn = new SolidColorBrush(Color.Parse("#FFC363"));
     public static readonly IBrush Ranked = new SolidColorBrush(Color.Parse("#B3FF66"));
+
+    // Couleurs des rangs, comme les lettres de stable.
+    public static readonly IBrush GradeGold = new SolidColorBrush(Color.Parse("#FFCF4D"));
+    public static readonly IBrush GradeSilver = new SolidColorBrush(Color.Parse("#DCE3F0"));
+    public static readonly IBrush GradeA = new SolidColorBrush(Color.Parse("#8CE65A"));
+    public static readonly IBrush GradeB = new SolidColorBrush(Color.Parse("#4FA8FF"));
+    public static readonly IBrush GradeC = new SolidColorBrush(Color.Parse("#C77DFF"));
+    public static readonly IBrush GradeD = new SolidColorBrush(Color.Parse("#FF6161"));
 }

@@ -211,7 +211,7 @@ internal static class Strings
             "{n} file was missing in lazer.|{n} files were missing in lazer.",
             "{n} файл отсутствовал в lazer.|{n} файла отсутствовали в lazer.|{n} файлов отсутствовали в lazer."),
         ["DoneCollections"] = ("Collections : {0}, {1}.", "Collections: {0}, {1}.", "Коллекции: {0}, {1}."),
-        ["DoneBackup"] = (" Ancien collection.db sauvegardé : {0}.", " Previous collection.db backed up as {0}.", " Старый collection.db сохранён как {0}."),
+        ["DoneBackup"] = (" L'ancien collection.db est sauvegardé à côté.", " The previous collection.db is backed up next to it.", " Старый collection.db сохранён рядом."),
         ["DoneCollFailed"] = ("Les collections n'ont pas été ajoutées : {0}", "Collections weren't added: {0}", "Коллекции не добавлены: {0}"),
         ["CollStableWasOpen"] = (
             "osu! stable était ouvert pendant la copie, et il réécrit collection.db en quittant. Ferme stable puis clique sur « Revenir à la liste » pour ajouter les collections.",
@@ -227,9 +227,9 @@ internal static class Strings
             "Launch osu! stable: it imports the .osz files placed in Songs by itself on startup, no F5 needed.",
             "Запусти osu! stable: при запуске он сам импортирует файлы .osz из Songs, F5 не нужен."),
         ["NextUnchecked"] = (
-            "Les maps que tu n'avais pas cochées restent dans lazer : clique sur « Revenir à la liste » pour les retrouver.",
-            "Maps you didn't check stay in lazer: click \"Back to the list\" to find them.",
-            "Неотмеченные карты остаются в lazer: нажми «Назад к списку», чтобы их найти."),
+            "Ce que tu n'avais pas coché reste dans lazer : clique sur « Revenir à la liste » pour le retrouver.",
+            "Whatever you didn't check stays in lazer: click \"Back to the list\" to find it.",
+            "Всё неотмеченное остаётся в lazer: нажми «Назад к списку», чтобы это найти."),
         ["ToCheck"] = ("À vérifier", "To check", "Проверь"),
         ["ToCheckNote"] = ("Le détail complet est dans le rapport.", "Full details are in the report.", "Подробности в отчёте."),
         ["BackToList"] = ("Revenir à la liste", "Back to the list", "Назад к списку"),
@@ -246,7 +246,7 @@ internal static class Strings
             "Copy {n} map to stable|Copy {n} maps to stable",
             "Скопировать {n} карту в stable|Скопировать {n} карты в stable|Скопировать {n} карт в stable"),
         ["NothingToCopy"] = ("Rien à copier", "Nothing to copy", "Копировать нечего"),
-        ["NoneChecked"] = ("Aucune map cochée", "No map checked", "Ничего не отмечено"),
+        ["NoneChecked"] = ("Rien de coché", "Nothing checked", "Ничего не отмечено"),
         ["SelAllPresent"] = ("Tout est déjà dans stable.", "Everything is already in stable.", "Всё уже есть в stable."),
         ["SelCheckSome"] = ("Coche les maps à copier.", "Check the maps to copy.", "Отметь карты для копирования."),
         ["PSelChecked"] = ("{n} map cochée|{n} maps cochées", "{n} map checked|{n} maps checked", "Отмечена {n} карта|Отмечены {n} карты|Отмечено {n} карт"),
@@ -285,9 +285,9 @@ internal static class Strings
         ["Cancel"] = ("Annuler", "Cancel", "Отмена"),
         ["CopyWithoutClosing"] = ("Copier sans fermer", "Copy without closing", "Копировать без закрытия"),
         ["CopyWithoutClosingTip"] = (
-            "Les maps sont copiées, mais si stable est ouvert, les collections ne sont pas ajoutées : stable les écraserait en quittant.",
-            "Maps are copied, but if stable is open the collections aren't added: stable would overwrite them when it quits.",
-            "Карты будут скопированы, но если stable открыт, коллекции не добавятся: stable перезапишет их при выходе."),
+            "Les maps sont copiées, mais si stable est ouvert, les collections et les scores ne sont pas ajoutés : stable les écraserait en quittant.",
+            "Maps are copied, but if stable is open the collections and scores aren't added: stable would overwrite them when it quits.",
+            "Карты будут скопированы, но если stable открыт, коллекции и рекорды не добавятся: stable перезапишет их при выходе."),
         ["CloseThenCopy"] = ("Fermer osu! puis copier", "Close osu! and copy", "Закрыть osu! и копировать"),
         ["ClosingOsu"] = ("Fermeture d'osu!…", "Closing osu!…", "Закрываю osu!…"),
         ["PConfirmTitle"] = (
@@ -360,5 +360,225 @@ internal static class Strings
         ["RptSecEdited"] = ("Ignorées : modifiées dans l'éditeur lazer", "Skipped: edited in the lazer editor", "Пропущены: изменены в редакторе lazer"),
         ["RptSecRuleset"] = ("Ignorées : modes de jeu propres à lazer", "Skipped: lazer-only game modes", "Пропущены: режимы только для lazer"),
         ["RptSecMissing"] = ("Ignorées : fichiers manquants dans lazer", "Skipped: files missing in lazer", "Пропущены: нет файлов в lazer"),
+
+        // ================================================================== scores
+
+        // analyse
+        ["PScores"] = ("{n} score|{n} scores", "{n} score|{n} scores", "{n} рекорд|{n} рекорда|{n} рекордов"),
+        ["PMissingScores"] = ("{n} score manquant|{n} scores manquants", "{n} missing score|{n} missing scores",
+            "{n} недостающий рекорд|{n} недостающих рекорда|{n} недостающих рекордов"),
+        ["ScoresNoInstall"] = (
+            "Dossier d'installation de stable introuvable (scores.db). Choisis le dossier de stable plutôt que Songs.",
+            "stable's install folder (scores.db) wasn't found. Choose the stable folder rather than Songs.",
+            "Не найдена папка установки stable (scores.db). Выбери папку stable, а не Songs."),
+        ["ScoresUnreadable"] = ("scores.db de stable illisible : {0}", "Can't read stable's scores.db: {0}", "Не удалось прочитать scores.db из stable: {0}"),
+        ["ErrScoresUnreadable"] = (
+            "scores.db illisible : fichier abîmé ou d'un format inconnu.",
+            "scores.db can't be read: the file is damaged or in an unknown format.",
+            "scores.db не читается: файл повреждён или неизвестного формата."),
+        ["ErrScoresVerify"] = (
+            "La relecture du nouveau scores.db ne correspond pas : fichier d'origine conservé.",
+            "The new scores.db didn't read back correctly: the original file was kept.",
+            "Новый scores.db не прошёл проверку: исходный файл сохранён."),
+
+        // sections
+        ["SectionMaps"] = ("Beatmaps", "Beatmaps", "Карты"),
+        ["SectionScores"] = ("Scores", "Scores", "Рекорды"),
+        ["PSectionToCopy"] = ("{n} à copier|{n} à copier", "{n} to copy|{n} to copy", "скопировать: {n}|скопировать: {n}|скопировать: {n}"),
+        ["SectionNone"] = ("rien à copier", "nothing to copy", "копировать нечего"),
+        ["SectionUnavailable"] = ("indisponible", "unavailable", "недоступно"),
+        ["SectionMapsTip"] = (
+            "Coché : les maps cochées dans la liste sont copiées. Décoché : aucune map n'est copiée (si elles sont déjà dans stable).",
+            "Checked: the maps checked in the list are copied. Unchecked: no maps are copied (if they're already in stable).",
+            "Отмечено: копируются карты, отмеченные в списке. Не отмечено: карты не копируются (если они уже есть в stable)."),
+        ["SectionScoresTip"] = (
+            "Coché : les scores cochés dans la liste sont ajoutés au classement Local de stable. Décoché : aucun score n'est copié.",
+            "Checked: the scores checked in the list are added to stable's Local leaderboard. Unchecked: no scores are copied.",
+            "Отмечено: отмеченные рекорды добавляются в локальную таблицу stable. Не отмечено: рекорды не копируются."),
+        ["SectionMapsOff"] = (
+            "Les beatmaps ne seront pas copiées. Coche « Beatmaps » en haut pour les inclure.",
+            "Beatmaps won't be copied. Check \"Beatmaps\" at the top to include them.",
+            "Карты не будут скопированы. Отметь «Карты» вверху, чтобы их добавить."),
+        ["SectionScoresOff"] = (
+            "Les scores ne seront pas copiés. Coche « Scores » en haut pour les inclure.",
+            "Scores won't be copied. Check \"Scores\" at the top to include them.",
+            "Рекорды не будут скопированы. Отметь «Рекорды» вверху, чтобы их добавить."),
+
+        // résumé
+        ["HeadlineNoneAll"] = (
+            "Stable a déjà tout ce que tu as dans lazer",
+            "stable already has everything you have in lazer",
+            "В stable уже есть всё, что есть у тебя в lazer"),
+        ["PHeadlineScores"] = (
+            "{n} score de lazer manque dans stable|{n} scores de lazer manquent dans stable",
+            "{n} lazer score is missing from stable|{n} lazer scores are missing from stable",
+            "В stable не хватает {n} рекорда из lazer|В stable не хватает {n} рекордов из lazer|В stable не хватает {n} рекордов из lazer"),
+        ["HeadlineBoth"] = ("{0} et {1} manquent dans stable", "{0} and {1} are missing from stable", "В stable не хватает {0} и {1}"),
+        ["PGenMaps"] = ("{n} map|{n} maps", "{n} map|{n} maps", "{n} карты|{n} карт|{n} карт"),
+        ["PGenScores"] = ("{n} score|{n} scores", "{n} score|{n} scores", "{n} рекорда|{n} рекордов|{n} рекордов"),
+        ["SubScoresToCopy"] = (
+            "Ils iront dans le classement Local de stable, avec leur replay.",
+            "They'll go to stable's Local leaderboard, with their replays.",
+            "Они попадут в локальную таблицу рекордов stable вместе с реплеями."),
+        ["PSubScoresPresent"] = (
+            "{n} score est déjà dans stable|{n} scores sont déjà dans stable",
+            "{n} score is already in stable|{n} scores are already in stable",
+            "{n} рекорд уже есть в stable|{n} рекорда уже есть в stable|{n} рекордов уже есть в stable"),
+        ["PSubScoresIgnored"] = (", {n} est ignoré|, {n} sont ignorés", ", {n} is skipped|, {n} are skipped", ", {n} пропущен|, {n} пропущены|, {n} пропущено"),
+
+        // colonne gauche
+        ["TabIgnoredScores"] = ("Ignorés", "Skipped", "Пропущены"),
+        ["GroupPlayers"] = ("Joueurs", "Players", "Игроки"),
+        ["PIncludeOthers"] = (
+            "Inclure {n} replay d'autres joueurs|Inclure {n} replays d'autres joueurs",
+            "Include {n} replay from other players|Include {n} replays from other players",
+            "Добавить {n} реплей других игроков|Добавить {n} реплея других игроков|Добавить {n} реплеев других игроков"),
+        ["OthersDetail"] = (
+            "Replays téléchargés ou regardés dans lazer. Tes propres scores ({0}, et ceux joués en invité) sont toujours inclus.",
+            "Replays you downloaded or watched in lazer. Your own scores ({0}, and those played as a guest) are always included.",
+            "Реплеи, скачанные или просмотренные в lazer. Твои рекорды ({0}, а также сыгранные гостем) добавляются всегда."),
+        ["GroupGoodToKnow"] = ("Bon à savoir", "Good to know", "Полезно знать"),
+        ["ScoresNote"] = (
+            "Les scores joués dans lazer sont convertis pour stable : le score est celui du mode « Classic » de lazer, et stable recalcule la précision et le rang. Leur replay peut différer un peu dans stable, car lazer juge les sliders autrement. Rien n'est retiré de scores.db, et il est sauvegardé avant.",
+            "Scores played in lazer are converted for stable: the score is lazer's \"Classic\" display, and stable recalculates accuracy and rank. Their replays may play back a little differently in stable, because lazer judges sliders differently. Nothing is removed from scores.db, and it's backed up first.",
+            "Рекорды, сыгранные в lazer, конвертируются для stable: очки берутся из режима «Classic» в lazer, а точность и ранг stable пересчитывает сам. Реплеи могут немного отличаться в stable, потому что lazer по-другому оценивает слайдеры. Из scores.db ничего не удаляется, и он сначала сохраняется в резервную копию."),
+
+        // liste
+        ["SearchScoresWatermark"] = ("Chercher une map, un joueur ou des mods", "Search a map, player or mods", "Поиск: карта, игрок или моды"),
+        ["CheckAllScoresTip"] = ("Coche tous les scores affichés", "Checks every score shown", "Отметить все показанные рекорды"),
+        ["UncheckAllScoresTip"] = ("Décoche tous les scores affichés", "Unchecks every score shown", "Снять отметку со всех показанных рекордов"),
+        ["SortScoreRecent"] = ("Plus récents", "Most recent", "Сначала новые"),
+        ["SortScoreBest"] = ("Meilleur score", "Highest score", "Больше всего очков"),
+        ["SortScoreAcc"] = ("Meilleure précision", "Best accuracy", "Лучшая точность"),
+        ["SortScoreMap"] = ("Map", "Map", "Карта"),
+        ["EmptyScoresToCopy"] = (
+            "Rien à copier : tes scores lazer sont déjà dans stable.",
+            "Nothing to copy: your lazer scores are already in stable.",
+            "Копировать нечего: твои рекорды из lazer уже есть в stable."),
+        ["EmptyScoresPresent"] = (
+            "Aucun de tes scores lazer n'est encore dans stable.",
+            "None of your lazer scores is in stable yet.",
+            "Ни одного твоего рекорда из lazer пока нет в stable."),
+        ["EmptyScoresIgnored"] = ("Aucun score ignoré.", "No skipped scores.", "Пропущенных рекордов нет."),
+        ["EmptyScoresSearch"] = (
+            "Aucun score ne correspond à ta recherche ou aux modes choisis.",
+            "No score matches your search or the chosen modes.",
+            "Ни один рекорд не подходит под поиск или выбранные режимы."),
+        ["EmptyScoresNone"] = ("Tu n'as aucun score dans lazer.", "You have no scores in lazer.", "В lazer нет рекордов."),
+        ["PlayedInLazer"] = ("joué dans lazer", "played in lazer", "сыгран в lazer"),
+        ["FromStable"] = ("venu de stable", "from stable", "из stable"),
+        ["ShortDate"] = ("dd/MM/yyyy", "yyyy-MM-dd", "dd.MM.yyyy"),
+        ["NeedsMapComing"] = ("Sa map sera copiée en même temps", "Its map will be copied too", "Его карта тоже будет скопирована"),
+        ["NeedsMapMissing"] = (
+            "Sa map n'est pas dans stable : coche-la dans Beatmaps pour copier ce score",
+            "Its map isn't in stable: check it under Beatmaps to copy this score",
+            "Его карты нет в stable: отметь её в разделе «Карты», чтобы скопировать этот рекорд"),
+
+        // raisons
+        ["ReasonScoreInStable"] = ("déjà dans le classement Local de stable", "already in stable's Local leaderboard", "уже в локальной таблице stable"),
+        ["ReasonScoreRuleset"] = ("Mode de jeu propre à lazer", "lazer-only game mode", "Режим только для lazer"),
+        ["ReasonScoreNoReplay"] = ("Replay introuvable dans le stockage lazer", "Replay not found in lazer's storage", "Реплей не найден в хранилище lazer"),
+        ["ReasonScoreMods"] = ("Mods qui n'existent pas dans stable : {0}", "Mods that don't exist in stable: {0}", "Моды, которых нет в stable: {0}"),
+        ["ReasonScoreModSettings"] = (
+            "Mods réglés autrement que dans stable : {0}",
+            "Mods set up differently than in stable: {0}",
+            "Моды с настройками, которых нет в stable: {0}"),
+        ["ReasonScoreMapOther"] = (
+            "stable a une autre version de cette map (mise à jour d'un côté seulement)",
+            "stable has a different version of this map (updated on one side only)",
+            "В stable другая версия этой карты (обновлена только с одной стороны)"),
+        ["ReasonScoreMapMissing"] = (
+            "Sa map n'est pas dans stable et ne peut pas y être copiée",
+            "Its map isn't in stable and can't be copied there",
+            "Его карты нет в stable, и её нельзя туда скопировать"),
+        ["ReasonScoreOther"] = ("Replay d'un autre joueur ({0})", "Another player's replay ({0})", "Реплей другого игрока ({0})"),
+
+        // bas de page
+        ["PExportScoresButton"] = (
+            "Copier {n} score vers stable|Copier {n} scores vers stable",
+            "Copy {n} score to stable|Copy {n} scores to stable",
+            "Скопировать {n} рекорд в stable|Скопировать {n} рекорда в stable|Скопировать {n} рекордов в stable"),
+        ["ExportBothButton"] = ("Copier {0} et {1}", "Copy {0} and {1}", "Скопировать {0} и {1}"),
+        ["PAccMaps"] = ("{n} map|{n} maps", "{n} map|{n} maps", "{n} карту|{n} карты|{n} карт"),
+        ["PAccScores"] = ("{n} score|{n} scores", "{n} score|{n} scores", "{n} рекорд|{n} рекорда|{n} рекордов"),
+        ["AddCollectionsButton"] = ("Ajouter les collections", "Add the collections", "Добавить коллекции"),
+        ["PSelScoresChecked"] = (
+            "{n} score coché|{n} scores cochés",
+            "{n} score checked|{n} scores checked",
+            "отмечен {n} рекорд|отмечены {n} рекорда|отмечено {n} рекордов"),
+        ["PSelScoresWaiting"] = (
+            "{n} score attend sa map|{n} scores attendent leur map",
+            "{n} score is waiting for its map|{n} scores are waiting for their maps",
+            "{n} рекорд ждёт свою карту|{n} рекорда ждут свои карты|{n} рекордов ждут свои карты"),
+        ["SelMapsSeg"] = ("{0} ({1})", "{0} ({1})", "{0} ({1})"),
+        ["SelCollectionsOnly"] = (
+            "Aucune map à copier : seules tes collections seront ajoutées.",
+            "No maps to copy: only your collections will be added.",
+            "Карт для копирования нет: будут добавлены только коллекции."),
+        ["ConfirmCollectionsTitle"] = ("Ajouter les collections ?", "Add the collections?", "Добавить коллекции?"),
+        ["SelCheckAnything"] = ("Coche ce que tu veux copier.", "Check what you want to copy.", "Отметь, что нужно скопировать."),
+
+        // confirmation
+        ["PConfirmScoresTitle"] = (
+            "Copier {n} score vers stable ?|Copier {n} scores vers stable ?",
+            "Copy {n} score to stable?|Copy {n} scores to stable?",
+            "Скопировать {n} рекорд в stable?|Скопировать {n} рекорда в stable?|Скопировать {n} рекордов в stable?"),
+        ["ConfirmBothTitle"] = ("Copier {0} et {1} vers stable ?", "Copy {0} and {1} to stable?", "Скопировать {0} и {1} в stable?"),
+        ["ConfirmScores"] = (
+            "Les scores vont dans le classement Local de stable : scores.db est sauvegardé avant, et les replays sont ajoutés dans Data\\r.",
+            "The scores go to stable's Local leaderboard: scores.db is backed up first, and the replays are added to Data\\r.",
+            "Рекорды попадут в локальную таблицу stable: scores.db сначала сохраняется в резервную копию, а реплеи добавляются в Data\\r."),
+
+        // copie
+        ["ExportScoresHeadline"] = ("Ajout des scores", "Adding scores", "Добавление рекордов"),
+        ["ExportScoresDetail"] = ("{0} sur {1}.", "{0} of {1}.", "{0} из {1}."),
+
+        // bilan
+        ["DoneNothing"] = ("Rien n'a été copié", "Nothing was copied", "Ничего не скопировано"),
+        ["PDoneScoresHeadline"] = (
+            "{n} score copié dans stable|{n} scores copiés dans stable",
+            "{n} score copied to stable|{n} scores copied to stable",
+            "{n} рекорд скопирован в stable|{n} рекорда скопированы в stable|{n} рекордов скопировано в stable"),
+        ["DoneBoth"] = ("{0} et {1} copiés dans stable", "{0} and {1} copied to stable", "В stable скопированы {0} и {1}"),
+        ["PNomMaps"] = ("{n} map|{n} maps", "{n} map|{n} maps", "{n} карта|{n} карты|{n} карт"),
+        ["PNomScores"] = ("{n} score|{n} scores", "{n} score|{n} scores", "{n} рекорд|{n} рекорда|{n} рекордов"),
+        ["PDoneScores"] = (
+            "Scores : {n} ajouté au classement Local.|Scores : {n} ajoutés au classement Local.",
+            "Scores: {n} added to the Local leaderboard.|Scores: {n} added to the Local leaderboard.",
+            "Рекорды: {n} добавлен в локальную таблицу.|Рекорды: {n} добавлены в локальную таблицу.|Рекорды: {n} добавлено в локальную таблицу."),
+        ["DoneScoresBackup"] = (" L'ancien scores.db est sauvegardé à côté.", " The previous scores.db is backed up next to it.", " Старый scores.db сохранён рядом."),
+        ["DoneScoresFailed"] = ("Les scores n'ont pas été ajoutés : {0}", "Scores weren't added: {0}", "Рекорды не добавлены: {0}"),
+        ["PDoneScoresMissingMap"] = (
+            " {n} attendait une map qui n'a pas été copiée.| {n} attendaient une map qui n'a pas été copiée.",
+            " {n} was waiting for a map that wasn't copied.| {n} were waiting for maps that weren't copied.",
+            " {n} ждал карту, которая не была скопирована.| {n} ждали карты, которые не были скопированы.| {n} ждали карты, которые не были скопированы."),
+        ["PDoneScoresFailedCount"] = (
+            " {n} n'a pas pu être ajouté.| {n} n'ont pas pu être ajoutés.",
+            " {n} couldn't be added.| {n} couldn't be added.",
+            " {n} не удалось добавить.| {n} не удалось добавить.| {n} не удалось добавить."),
+        ["ScoresStableWasOpen"] = (
+            "osu! stable était ouvert pendant la copie, et il réécrit scores.db en quittant. Ferme stable puis clique sur « Revenir à la liste » pour ajouter les scores.",
+            "osu! stable was open during the copy, and it rewrites scores.db when it quits. Close stable, then click \"Back to the list\" to add the scores.",
+            "osu! stable был открыт во время копирования, а при выходе он перезаписывает scores.db. Закрой stable и нажми «Назад к списку», чтобы добавить рекорды."),
+        ["NextScores"] = (
+            "Pour voir tes scores, choisis le classement local (« Local Ranking ») en haut à gauche de la sélection des musiques.",
+            "To see your scores, pick the local leaderboard (\"Local Ranking\") at the top left of song select.",
+            "Чтобы увидеть рекорды, выбери локальную таблицу («Local Ranking») слева вверху в меню выбора песен."),
+        ["NextScoresOnly"] = (
+            "Lance osu! stable. Pour voir tes scores, choisis le classement local (« Local Ranking ») en haut à gauche de la sélection des musiques.",
+            "Launch osu! stable. To see your scores, pick the local leaderboard (\"Local Ranking\") at the top left of song select.",
+            "Запусти osu! stable. Чтобы увидеть рекорды, выбери локальную таблицу («Local Ranking») слева вверху в меню выбора песен."),
+
+        // rapport
+        ["RptScores"] = (
+            "Scores : {0} ajoutés, {1} en échec, {2} sans leur map.",
+            "Scores: {0} added, {1} failed, {2} without their map.",
+            "Рекорды: добавлено {0}, ошибок {1}, без карты {2}."),
+        ["RptScoresBackup"] = ("Sauvegarde de l'ancien scores.db : {0}", "Previous scores.db backup: {0}", "Резервная копия старого scores.db: {0}"),
+        ["RptScoresNot"] = ("Scores non ajoutés : {0}", "Scores not added: {0}", "Рекорды не добавлены: {0}"),
+        ["RptSecScoresAdded"] = ("Scores ajoutés", "Scores added", "Добавленные рекорды"),
+        ["RptSecScoresFailed"] = ("Scores en échec", "Scores that failed", "Рекорды с ошибками"),
+        ["RptSecScoresNoMap"] = ("Scores non ajoutés : leur map n'a pas été copiée", "Scores not added: their map wasn't copied", "Рекорды не добавлены: их карта не скопирована"),
+        ["RptSecScoresIgnored"] = ("Scores ignorés", "Scores skipped", "Пропущенные рекорды"),
     };
 }

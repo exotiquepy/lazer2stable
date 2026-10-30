@@ -11,7 +11,17 @@ public enum Screen { Setup, Analyzing, Review, Exporting, Done }
 
 public enum ListTab { ToCopy, Present, Ignored }
 
+/// <summary>Ce qu'on regarde dans la liste : les beatmaps ou les scores.</summary>
+public enum Section { Maps, Scores }
+
 public sealed record SortOption(string Key, Func<IEnumerable<MapItemViewModel>, IEnumerable<MapItemViewModel>> Apply)
+{
+    public string Label => Loc.T(Key);
+
+    public override string ToString() => Label;
+}
+
+public sealed record ScoreSortOption(string Key, Func<IEnumerable<ScoreItemViewModel>, IEnumerable<ScoreItemViewModel>> Apply)
 {
     public string Label => Loc.T(Key);
 
@@ -32,11 +42,14 @@ public sealed partial class MainViewModel : ObservableObject
     private StableLocation? stable;
     private StableIndex? stableIndex;
     private Plan? plan;
+    private ScorePlan? scorePlan;
     private List<LazerCollection> lazerCollections = [];
     private List<MapItemViewModel> allItems = [];
     private Dictionary<PlanItem, MapItemViewModel> byItem = [];
+    private List<ScoreItemViewModel> allScores = [];
     private CancellationTokenSource? exportCts;
     private CancellationTokenSource? searchDebounce;
+    private CancellationTokenSource? scoreSearchDebounce;
     private List<OsuInstance> osuInstances = [];
 
     public IShell? Shell { get; set; }
@@ -49,8 +62,13 @@ public sealed partial class MainViewModel : ObservableObject
 
         exportAsOsz = settings.ExportAsOsz;
         exportCollections = settings.ExportCollections;
+        includeMaps = settings.CopyBeatmaps;
+        includeScores = settings.CopyScores;
+        includeOthers = settings.ScoresIncludeOthers;
         sortOptions = BuildSortOptions();
         sort = sortOptions[0];
+        scoreSortOptions = BuildScoreSortOptions();
+        scoreSort = scoreSortOptions[0];
 
         // Ce constructeur démarre le minuteur aussitôt : on le met en pause jusqu'à StartAsync.
         osuWatch = new DispatcherTimer(TimeSpan.FromSeconds(3), DispatcherPriority.Background, (_, _) => CheckOsuRunning());
@@ -114,7 +132,7 @@ public sealed partial class MainViewModel : ObservableObject
         SongsStep.RefreshTexts();
         CompareStep.RefreshTexts();
         if (CurrentScreen == Screen.Analyzing) SetAnalysisProgress(AnalysisProgress);
-        else if (CurrentScreen == Screen.Review) CircleText = Fmt.N(ToCopyCount);
+        else if (CurrentScreen == Screen.Review) CircleText = Fmt.N(CurrentSectionToCopy);
 
         RefreshCollectionsPreview();
         OsuRunningText = OsuProcesses.Describe(osuInstances);
@@ -123,13 +141,22 @@ public sealed partial class MainViewModel : ObservableObject
         SortOptions = BuildSortOptions();
         Sort = SortOptions.First(o => o.Key == current);
 
+        var currentScore = ScoreSort.Key;
+        ScoreSortOptions = BuildScoreSortOptions();
+        ScoreSort = ScoreSortOptions.First(o => o.Key == currentScore);
+
         foreach (var item in allItems) item.RefreshTexts();
+        foreach (var s in allScores) s.RefreshTexts();
         ApplyFilter();
+        ApplyScoreFilter();
+        RefreshScoreTexts();
 
         foreach (string name in new[]
                  {
                      nameof(Headline), nameof(SubHeadline), nameof(ToCopyCountText), nameof(PresentCountText), nameof(IgnoredCountText),
                      nameof(EmptyListText), nameof(VisibleCountText), nameof(ExportButtonText), nameof(SelectionText),
+                     nameof(ScoreToCopyCountText), nameof(ScorePresentCountText), nameof(ScoreIgnoredCountText), nameof(ScoreEmptyText),
+                     nameof(MapsSectionDetail), nameof(ScoresSectionDetail),
                  })
             OnPropertyChanged(name);
 
@@ -263,7 +290,7 @@ public sealed partial class MainViewModel : ObservableObject
             var lz = lazer;
             var st = stable;
 
-            // 1. Base lazer : copie temporaire puis lecture des sets.
+            // 1. Base lazer : copie temporaire puis lecture des sets et des scores.
             LazerStep.Start(() => Loc.T("StepCopyingDb"));
             var lazerProgress = new Progress<(double Fraction, int Sets, int Total)>(p =>
             {
@@ -273,7 +300,8 @@ public sealed partial class MainViewModel : ObservableObject
             });
             var data = await Task.Run(() => LazerLibrary.Read(lz, lazerProgress));
             int liveSets = data.Sets.Count(x => !x.DeletePending && !x.Protected);
-            LazerStep.Finish(() => Loc.P("PMaps", liveSets));
+            int scoreCount = data.Scores.Count;
+            LazerStep.Finish(() => scoreCount > 0 ? $"{Loc.P("PMaps", liveSets)}, {Loc.P("PScores", scoreCount)}" : Loc.P("PMaps", liveSets));
             SetAnalysisProgress(LazerWeight);
 
             // 2. Songs : inventaire des .osu, puis lecture de chacun.
@@ -296,20 +324,28 @@ public sealed partial class MainViewModel : ObservableObject
             SongsStep.Finish(() => Loc.P("PDifficulties", index.OsuFileCount));
             SetAnalysisProgress(LazerWeight + SongsWeight);
 
-            // 3. Comparaison.
+            // 3. Comparaison : les maps, puis les scores.
             CompareStep.Start(() => "");
-            var compareProgress = new Progress<double>(f =>
+            void Compare(double f)
             {
                 CompareStep.Fraction = f;
                 SetAnalysisProgress(LazerWeight + SongsWeight + CompareWeight * f);
-            });
-            var built = await Task.Run(() => Planner.Build(data.Sets, index, lz, compareProgress));
+            }
+
+            var mapsProgress = new Progress<double>(f => Compare(f * 0.5));
+            var scoresProgress = new Progress<double>(f => Compare(0.5 + f * 0.5));
+            var built = await Task.Run(() => Planner.Build(data.Sets, index, lz, mapsProgress));
+            var scores = await Task.Run(() => ScorePlanner.Build(data.Scores, data.Sets, lz, st, index, built, scoresProgress));
             int missing = built.Count(Decision.Copy);
-            CompareStep.Finish(() => Loc.P("PMissingMaps", missing));
+            int missingScores = scores.Items.Count(i => i.Decision == ScoreDecision.Copy && (i.IsMine || IncludeOthers));
+            CompareStep.Finish(() => missingScores > 0
+                ? $"{Loc.P("PMissingMaps", missing)}, {Loc.P("PMissingScores", missingScores)}"
+                : Loc.P("PMissingMaps", missing));
             SetAnalysisProgress(1);
 
             stableIndex = index;
             plan = built;
+            scorePlan = scores;
             lazerCollections = data.Collections;
             allItems = built.Items.Where(i => i.Decision != Decision.Skipped).Select(i => new MapItemViewModel(i, lz)).ToList();
             byItem = allItems.ToDictionary(v => v.Item);
@@ -325,16 +361,21 @@ public sealed partial class MainViewModel : ObservableObject
             LazerSetCount = allItems.Count;
             ToCopyBytes = allItems.Where(i => i.IsCopyCandidate).Sum(i => i.Item.Bytes);
 
+            BuildScoreItems(scores);
+
             RefreshCollectionsPreview();
             SelectedTab = ToCopyCount > 0 || PresentCount == 0 ? ListTab.ToCopy : ListTab.Present;
+            SelectedScoreTab = ScoreToCopyCount > 0 || ScorePresentCount == 0 ? ListTab.ToCopy : ListTab.Present;
+            CurrentSection = ToCopyCount == 0 && ScoreToCopyCount > 0 ? Section.Scores : Section.Maps;
             ApplyFilter();
+            ApplyScoreFilter();
             RefreshSelection();
 
             // Laisse l'anneau se remplir avant de passer à la liste.
             await Task.Delay(450);
-            CircleText = Fmt.N(ToCopyCount);
+            CircleText = Fmt.N(CurrentSectionToCopy);
             CurrentScreen = Screen.Review;
-            // Le cercle d'approche se referme une fois sur le nombre de maps à copier.
+            // Le cercle d'approche se referme une fois sur le nombre d'éléments à copier.
             Dispatcher.UIThread.Post(() => CircleApproach = 1, DispatcherPriority.Background);
         }
         catch (UserFacingException e)
@@ -349,11 +390,52 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    private void BuildScoreItems(ScorePlan scores)
+    {
+        var bySet = new Dictionary<LazerSet, MapItemViewModel>();
+        foreach (var v in allItems) bySet.TryAdd(v.Item.Set, v);
+
+        allScores = scores.Items.Select(i => new ScoreItemViewModel(i,
+                i.Set != null ? bySet.GetValueOrDefault(i.Set) : null,
+                i.NeedsMap != null ? byItem.GetValueOrDefault(i.NeedsMap) : null)
+            {
+                OthersIncluded = IncludeOthers,
+            })
+            .ToList();
+
+        foreach (var s in allScores)
+            s.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ScoreItemViewModel.IsSelected)) RefreshSelection();
+            };
+
+        ScoresAvailable = scores.Unavailable == null;
+        ScoresUnavailableText = scores.Unavailable ?? "";
+        OthersCount = allScores.Count(s => s.Item.Decision == ScoreDecision.Copy && !s.Item.IsMine);
+        RecountScores();
+        RefreshScoreTexts();
+    }
+
+    private void RecountScores()
+    {
+        ScoreToCopyCount = allScores.Count(s => s.IsCopyCandidate);
+        ScorePresentCount = allScores.Count(s => s.IsPresent);
+        ScoreIgnoredCount = allScores.Count(s => s.IsIgnored);
+    }
+
+    private void RefreshScoreTexts()
+    {
+        IncludeOthersLabel = Loc.P("PIncludeOthers", OthersCount);
+        var names = scorePlan?.PlayerNames ?? [];
+        OthersDetail = Loc.F("OthersDetail", names.Count == 0 ? "—" : string.Join(", ", names.Select(Quote)));
+        OnPropertyChanged(nameof(ScoresSectionDetail));
+    }
+
     // ================================================================ résumé
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Headline), nameof(SubHeadline), nameof(NothingToCopy), nameof(ToCopyCountText),
-        nameof(ExportButtonText), nameof(SelectionText))]
+        nameof(ExportButtonText), nameof(SelectionText), nameof(MapsSectionDetail))]
     private int toCopyCount;
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline), nameof(PresentCountText))]
@@ -371,14 +453,34 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline))]
     private long toCopyBytes;
 
-    public bool NothingToCopy => ToCopyCount == 0;
+    public bool NothingToCopy => ToCopyCount == 0 && ScoreToCopyCount == 0;
 
-    public string Headline => ToCopyCount == 0 ? Loc.T("HeadlineNone") : Loc.P("PHeadlineMissing", ToCopyCount);
+    public string Headline
+    {
+        get
+        {
+            int m = ToCopyCount, s = ScoreToCopyCount;
+            if (m > 0 && s > 0) return Loc.F("HeadlineBoth", Loc.P("PGenMaps", m), Loc.P("PGenScores", s));
+            if (m > 0) return Loc.P("PHeadlineMissing", m);
+            if (s > 0) return Loc.P("PHeadlineScores", s);
+            return Loc.T(allScores.Count > 0 ? "HeadlineNoneAll" : "HeadlineNone");
+        }
+    }
 
     public string SubHeadline
     {
         get
         {
+            if (IsScoresSection)
+            {
+                if (!ScoresAvailable) return ScoresUnavailableText;
+                string sp = Loc.P("PSubScoresPresent", ScorePresentCount);
+                string si = ScoreIgnoredCount == 0 ? "" : Loc.P("PSubScoresIgnored", ScoreIgnoredCount);
+                return ScoreToCopyCount == 0
+                    ? $"{sp}{si}. {Loc.T("SubNothing")}"
+                    : $"{Loc.T("SubScoresToCopy")} {sp}{si}.";
+            }
+
             string present = Loc.P("PSubPresent", PresentCount);
             string ignored = IgnoredCount == 0 ? "" : Loc.P("PSubIgnored", IgnoredCount);
             return ToCopyCount == 0
@@ -395,6 +497,62 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private double circleBurst;
 
     [ObservableProperty] private string circleText = "";
+
+    // ============================================================= sections
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsMapsSection), nameof(IsScoresSection), nameof(SubHeadline))]
+    private Section currentSection;
+
+    public bool IsMapsSection
+    {
+        get => CurrentSection == Section.Maps;
+        set { if (value) CurrentSection = Section.Maps; }
+    }
+
+    public bool IsScoresSection
+    {
+        get => CurrentSection == Section.Scores;
+        set { if (value) CurrentSection = Section.Scores; }
+    }
+
+    private int CurrentSectionToCopy => IsScoresSection ? ScoreToCopyCount : ToCopyCount;
+
+    partial void OnCurrentSectionChanged(Section value)
+    {
+        if (CurrentScreen == Screen.Review) CircleText = Fmt.N(CurrentSectionToCopy);
+    }
+
+    /// <summary>Les beatmaps cochées sont copiées (décoché : seulement les scores, par exemple).</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowMapsOff))]
+    private bool includeMaps;
+
+    partial void OnIncludeMapsChanged(bool value)
+    {
+        settings.CopyBeatmaps = value;
+        settings.Save();
+        RefreshSelection();
+    }
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowScoresOff))]
+    private bool includeScores;
+
+    public bool ShowMapsOff => !IncludeMaps;
+
+    public bool ShowScoresOff => ScoresAvailable && !IncludeScores;
+
+    partial void OnIncludeScoresChanged(bool value)
+    {
+        settings.CopyScores = value;
+        settings.Save();
+        RefreshSelection();
+    }
+
+    public string MapsSectionDetail => ToCopyCount > 0 ? Loc.P("PSectionToCopy", ToCopyCount) : Loc.T("SectionNone");
+
+    public string ScoresSectionDetail => !ScoresAvailable ? Loc.T("SectionUnavailable")
+        : ScoreToCopyCount > 0 ? Loc.P("PSectionToCopy", ScoreToCopyCount)
+        : Loc.T("SectionNone");
 
     // =================================================================== liste
 
@@ -439,10 +597,28 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool showCatch = true;
     [ObservableProperty] private bool showMania = true;
 
-    partial void OnShowOsuChanged(bool value) => ApplyFilter();
-    partial void OnShowTaikoChanged(bool value) => ApplyFilter();
-    partial void OnShowCatchChanged(bool value) => ApplyFilter();
-    partial void OnShowManiaChanged(bool value) => ApplyFilter();
+    partial void OnShowOsuChanged(bool value) => ApplyBothFilters();
+    partial void OnShowTaikoChanged(bool value) => ApplyBothFilters();
+    partial void OnShowCatchChanged(bool value) => ApplyBothFilters();
+    partial void OnShowManiaChanged(bool value) => ApplyBothFilters();
+
+    private void ApplyBothFilters()
+    {
+        ApplyFilter();
+        ApplyScoreFilter();
+    }
+
+    private bool AllModes => ShowOsu && ShowTaiko && ShowCatch && ShowMania;
+
+    private HashSet<int> ShownModes()
+    {
+        var modes = new HashSet<int>();
+        if (ShowOsu) modes.Add(0);
+        if (ShowTaiko) modes.Add(1);
+        if (ShowCatch) modes.Add(2);
+        if (ShowMania) modes.Add(3);
+        return modes;
+    }
 
     [ObservableProperty] private IReadOnlyList<SortOption> sortOptions;
 
@@ -477,7 +653,7 @@ public sealed partial class MainViewModel : ObservableObject
         _ => IgnoredCount,
     };
 
-    public string EmptyListText => SearchText.Length > 0 || !(ShowOsu && ShowTaiko && ShowCatch && ShowMania)
+    public string EmptyListText => SearchText.Length > 0 || !AllModes
         ? Loc.T("EmptySearch")
         : SelectedTab switch
         {
@@ -497,13 +673,9 @@ public sealed partial class MainViewModel : ObservableObject
             _ => allItems.Where(i => i.IsIgnored),
         };
 
-        if (!(ShowOsu && ShowTaiko && ShowCatch && ShowMania))
+        if (!AllModes)
         {
-            var modes = new HashSet<int>();
-            if (ShowOsu) modes.Add(0);
-            if (ShowTaiko) modes.Add(1);
-            if (ShowCatch) modes.Add(2);
-            if (ShowMania) modes.Add(3);
+            var modes = ShownModes();
             q = q.Where(i => i.Item.Set.Beatmaps.Any(b => modes.Contains(b.RulesetId)));
         }
 
@@ -530,8 +702,157 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in VisibleItems.Where(i => i.IsCopyCandidate)) i.IsSelected = false;
     }
 
+    // ============================================================ liste des scores
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ScoresSectionDetail), nameof(SubHeadline), nameof(ShowScoresOff))]
+    private bool scoresAvailable = true;
+
+    [ObservableProperty] private string scoresUnavailableText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Headline), nameof(SubHeadline), nameof(NothingToCopy), nameof(ScoreToCopyCountText),
+        nameof(ExportButtonText), nameof(SelectionText), nameof(ScoresSectionDetail))]
+    private int scoreToCopyCount;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline), nameof(ScorePresentCountText))]
+    private int scorePresentCount;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline), nameof(ScoreIgnoredCountText))]
+    private int scoreIgnoredCount;
+
+    public string ScoreToCopyCountText => Fmt.N(ScoreToCopyCount);
+    public string ScorePresentCountText => Fmt.N(ScorePresentCount);
+    public string ScoreIgnoredCountText => Fmt.N(ScoreIgnoredCount);
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasOthers))]
+    private int othersCount;
+
+    public bool HasOthers => OthersCount > 0;
+
+    [ObservableProperty] private string includeOthersLabel = "";
+    [ObservableProperty] private string othersDetail = "";
+
+    /// <summary>Copier aussi les replays d'autres joueurs (téléchargés ou regardés dans lazer).</summary>
+    [ObservableProperty] private bool includeOthers;
+
+    partial void OnIncludeOthersChanged(bool value)
+    {
+        settings.ScoresIncludeOthers = value;
+        settings.Save();
+        foreach (var s in allScores) s.OthersIncluded = value;
+        RecountScores();
+        if (CurrentScreen == Screen.Review && IsScoresSection) CircleText = Fmt.N(ScoreToCopyCount);
+        ApplyScoreFilter();
+        RefreshSelection();
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsScoreToCopyTab), nameof(IsScorePresentTab), nameof(IsScoreIgnoredTab), nameof(ScoreEmptyText))]
+    private ListTab selectedScoreTab;
+
+    public bool IsScoreToCopyTab
+    {
+        get => SelectedScoreTab == ListTab.ToCopy;
+        set { if (value) SelectedScoreTab = ListTab.ToCopy; }
+    }
+
+    public bool IsScorePresentTab
+    {
+        get => SelectedScoreTab == ListTab.Present;
+        set { if (value) SelectedScoreTab = ListTab.Present; }
+    }
+
+    public bool IsScoreIgnoredTab
+    {
+        get => SelectedScoreTab == ListTab.Ignored;
+        set { if (value) SelectedScoreTab = ListTab.Ignored; }
+    }
+
+    partial void OnSelectedScoreTabChanged(ListTab value) => ApplyScoreFilter();
+
+    [ObservableProperty] private string scoreSearchText = "";
+
+    partial void OnScoreSearchTextChanged(string value)
+    {
+        scoreSearchDebounce?.Cancel();
+        var cts = scoreSearchDebounce = new CancellationTokenSource();
+        _ = Task.Delay(160, cts.Token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled) Dispatcher.UIThread.Post(ApplyScoreFilter);
+        }, TaskScheduler.Default);
+    }
+
+    [ObservableProperty] private IReadOnlyList<ScoreSortOption> scoreSortOptions;
+
+    private static List<ScoreSortOption> BuildScoreSortOptions() =>
+    [
+        new("SortScoreRecent", s => s.OrderByDescending(i => i.Date)),
+        new("SortScoreBest", s => s.OrderByDescending(i => i.Item.StableScore)),
+        new("SortScoreAcc", s => s.OrderByDescending(i => i.Accuracy).ThenByDescending(i => i.Item.StableScore)),
+        new("SortScoreMap", s => s.OrderBy(i => i.MapSortKey, StringComparer.OrdinalIgnoreCase).ThenByDescending(i => i.Item.StableScore)),
+    ];
+
+    [ObservableProperty] private ScoreSortOption scoreSort;
+
+    partial void OnScoreSortChanged(ScoreSortOption value) => ApplyScoreFilter();
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsScoreListEmpty))]
+    private IReadOnlyList<ScoreItemViewModel> visibleScores = [];
+
+    public bool IsScoreListEmpty => VisibleScores.Count == 0;
+
+    public string ScoreEmptyText => allScores.Count == 0 ? Loc.T("EmptyScoresNone")
+        : ScoreSearchText.Length > 0 || !AllModes ? Loc.T("EmptyScoresSearch")
+        : SelectedScoreTab switch
+        {
+            ListTab.ToCopy => Loc.T("EmptyScoresToCopy"),
+            ListTab.Present => Loc.T("EmptyScoresPresent"),
+            _ => Loc.T("EmptyScoresIgnored"),
+        };
+
+    private void ApplyScoreFilter()
+    {
+        if (ScoreSort == null) return;
+
+        IEnumerable<ScoreItemViewModel> q = SelectedScoreTab switch
+        {
+            ListTab.ToCopy => allScores.Where(i => i.IsCopyCandidate),
+            ListTab.Present => allScores.Where(i => i.IsPresent),
+            _ => allScores.Where(i => i.IsIgnored),
+        };
+
+        if (!AllModes)
+        {
+            var modes = ShownModes();
+            q = q.Where(i => modes.Contains(i.RulesetId));
+        }
+
+        string search = ScoreSearchText.Trim().ToLowerInvariant();
+        if (search.Length > 0)
+        {
+            string[] words = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            q = q.Where(i => words.All(w => i.SearchText.Contains(w, StringComparison.Ordinal)));
+        }
+
+        VisibleScores = ScoreSort.Apply(q).ToList();
+        OnPropertyChanged(nameof(ScoreEmptyText));
+    }
+
+    [RelayCommand]
+    private void SelectAllScores()
+    {
+        foreach (var i in VisibleScores.Where(i => i.IsCopyCandidate)) i.IsSelected = true;
+    }
+
+    [RelayCommand]
+    private void SelectNoScores()
+    {
+        foreach (var i in VisibleScores.Where(i => i.IsCopyCandidate)) i.IsSelected = false;
+    }
+
     // ============================================================= sélection
 
+    /// <summary>Maps cochées qui seront copiées (0 si les beatmaps sont décochées).</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ExportButtonText), nameof(CanExport), nameof(SelectionText))]
     private int selectedCount;
 
@@ -540,6 +861,14 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(SelectionText), nameof(NotEnoughSpace), nameof(CanExport))]
     private long? freeSpace;
+
+    /// <summary>Scores cochés qui seront copiés (leur map est dans stable ou copiée en même temps).</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ExportButtonText), nameof(CanExport), nameof(SelectionText))]
+    private int selectedScoreCount;
+
+    /// <summary>Scores cochés dont la map n'est ni dans stable ni cochée.</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SelectionText))]
+    private int waitingScoreCount;
 
     private bool refreshQueued;
 
@@ -551,35 +880,72 @@ public sealed partial class MainViewModel : ObservableObject
         Dispatcher.UIThread.Post(() =>
         {
             refreshQueued = false;
-            var selected = allItems.Where(i => i.IsCopyCandidate && i.IsSelected).ToList();
+            var selected = IncludeMaps ? allItems.Where(i => i.IsCopyCandidate && i.IsSelected).ToList() : [];
             SelectedCount = selected.Count;
             SelectedBytes = selected.Sum(i => i.Item.Bytes);
+
+            foreach (var s in allScores)
+                if (s.NeedsMap)
+                    s.MapComing = IncludeMaps && s.RequiredMap is { IsSelected: true, IsCopyCandidate: true };
+
+            bool scoresOn = IncludeScores && ScoresAvailable;
+            SelectedScoreCount = scoresOn ? allScores.Count(s => s.IsCopyCandidate && s.IsSelected && s.IsReady) : 0;
+            WaitingScoreCount = scoresOn ? allScores.Count(s => s.IsCopyCandidate && s.IsSelected && !s.IsReady) : 0;
+
             if (stable != null) FreeSpace = Fmt.FreeSpace(stable.SongsDir);
+            OnPropertyChanged(nameof(ExportButtonText));
+            OnPropertyChanged(nameof(CanExport));
+            OnPropertyChanged(nameof(SelectionText));
         }, DispatcherPriority.Background);
     }
 
-    public bool NotEnoughSpace => FreeSpace is long f && f < SelectedBytes + 200L * 1024 * 1024;
+    public bool NotEnoughSpace => SelectedCount > 0 && FreeSpace is long f && f < SelectedBytes + 200L * 1024 * 1024;
 
-    public bool CanExport => SelectedCount > 0 && !NotEnoughSpace;
+    /// <summary>Les collections seules (aucune map à copier) : possible tant que les beatmaps sont incluses.</summary>
+    private bool CollectionsOnly => SelectedCount == 0 && SelectedScoreCount == 0 && IncludeMaps && WillExportCollections;
 
-    public string ExportButtonText => SelectedCount switch
+    public bool CanExport => (SelectedCount > 0 || SelectedScoreCount > 0 || CollectionsOnly) && !NotEnoughSpace;
+
+    public string ExportButtonText
     {
-        0 when ToCopyCount == 0 => Loc.T("NothingToCopy"),
-        0 => Loc.T("NoneChecked"),
-        _ => Loc.P("PExportButton", SelectedCount),
-    };
+        get
+        {
+            int m = SelectedCount, s = SelectedScoreCount;
+            if (m > 0 && s > 0) return Loc.F("ExportBothButton", Loc.P("PAccMaps", m), Loc.P("PAccScores", s));
+            if (m > 0) return Loc.P("PExportButton", m);
+            if (s > 0) return Loc.P("PExportScoresButton", s);
+            if (CollectionsOnly) return Loc.T("AddCollectionsButton");
+            return NothingToCopy ? Loc.T("NothingToCopy") : Loc.T("NoneChecked");
+        }
+    }
 
     public string SelectionText
     {
         get
         {
-            if (ToCopyCount == 0) return Loc.T("SelAllPresent");
-            if (SelectedCount == 0) return Loc.T("SelCheckSome");
-            string sel = Loc.F("SelLine", Loc.P("PSelChecked", SelectedCount), Fmt.Bytes(SelectedBytes));
-            if (FreeSpace is not long f) return sel;
+            if (NothingToCopy && !CollectionsOnly) return Loc.T("SelAllPresent");
+
+            var parts = new List<string>();
+            if (SelectedCount > 0) parts.Add(Loc.F("SelMapsSeg", Loc.P("PSelChecked", SelectedCount), Fmt.Bytes(SelectedBytes)));
+            if (SelectedScoreCount > 0) parts.Add(Loc.P("PSelScoresChecked", SelectedScoreCount));
+            if (WaitingScoreCount > 0) parts.Add(Loc.P("PSelScoresWaiting", WaitingScoreCount));
+            if (parts.Count == 0) return Loc.T(CollectionsOnly ? "SelCollectionsOnly" : "SelCheckAnything");
+
+            string sel = Capitalize(string.Join(", ", parts)) + ".";
+            if (SelectedCount == 0 || FreeSpace is not long f) return sel;
             return NotEnoughSpace ? Loc.F("SelNoSpace", sel, Fmt.Bytes(f)) : Loc.F("SelFree", sel, Fmt.Bytes(f));
         }
     }
+
+    private static string Capitalize(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];
+
+    /// <summary>Guillemets de la langue : « nom » (fr), «nom» (ru), "name" (en).</summary>
+    private static string Quote(string s) => Loc.I.Lang switch
+    {
+        Lang.En => $"\"{s}\"",
+        Lang.Ru => $"«{s}»",
+        _ => $"« {s} »",
+    };
 
     // =============================================================== options
 
@@ -613,6 +979,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         settings.ExportCollections = value;
         settings.Save();
+        RefreshSelection();
     }
 
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(WillExportCollections))]
@@ -739,15 +1106,38 @@ public sealed partial class MainViewModel : ObservableObject
         IsConfirmOpen = true;
     }
 
+    private bool WillCopyCollections => IncludeMaps && WillExportCollections;
+
     private void BuildConfirmTexts()
     {
         if (stable == null) return;
 
-        ConfirmTitle = Loc.P("PConfirmTitle", SelectedCount);
-        string after = FreeSpace is long f ? Loc.F("ConfirmAfter", Fmt.Bytes(Math.Max(0, f - SelectedBytes))) : "";
-        ConfirmBody = Loc.F(ExportAsOsz ? "ConfirmBodyOsz" : "ConfirmBodyFolders", Fmt.Bytes(SelectedBytes), after);
-        ConfirmDestination = stable.SongsDir;
-        ConfirmCollections = WillExportCollections ? Loc.F("ConfirmCollections", CollectionsDetail) : "";
+        int m = SelectedCount, s = SelectedScoreCount;
+        ConfirmTitle = m > 0 && s > 0 ? Loc.F("ConfirmBothTitle", Loc.P("PAccMaps", m), Loc.P("PAccScores", s))
+            : m > 0 ? Loc.P("PConfirmTitle", m)
+            : s > 0 ? Loc.P("PConfirmScoresTitle", s)
+            : Loc.T("ConfirmCollectionsTitle");
+
+        var body = new List<string>();
+        var destinations = new List<string>();
+        if (m > 0)
+        {
+            string after = FreeSpace is long f ? Loc.F("ConfirmAfter", Fmt.Bytes(Math.Max(0, f - SelectedBytes))) : "";
+            body.Add(Loc.F(ExportAsOsz ? "ConfirmBodyOsz" : "ConfirmBodyFolders", Fmt.Bytes(SelectedBytes), after));
+            destinations.Add(stable.SongsDir);
+        }
+
+        if (s > 0)
+        {
+            body.Add(Loc.T("ConfirmScores"));
+            if (stable.InstallDir != null) destinations.Add(stable.InstallDir);
+        }
+
+        if (m == 0 && s == 0 && stable.InstallDir != null) destinations.Add(stable.InstallDir);
+
+        ConfirmBody = string.Join("\n", body);
+        ConfirmDestination = string.Join("\n", destinations.Distinct());
+        ConfirmCollections = WillCopyCollections ? Loc.F("ConfirmCollections", CollectionsDetail) : "";
     }
 
     [RelayCommand]
@@ -786,20 +1176,37 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ================================================================ export
 
+    private enum ExportPhase { Maps, Collections, Scores }
+
     [ObservableProperty] private string exportHeadline = "";
     [ObservableProperty] private string exportDetail = "";
     [ObservableProperty] private MapItemViewModel? currentExport;
     [ObservableProperty] private bool isStopping;
+    [ObservableProperty] private bool canStop = true;
 
     public ObservableCollection<MapItemViewModel> RecentlyExported { get; } = [];
 
-    private string exportHeadlineKey = "ExportHeadline";
+    private ExportPhase exportPhase = ExportPhase.Maps;
     private ExportProgress? lastProgress;
+    private ScoreExportProgress? lastScoreProgress;
     private TimeSpan? lastEta;
 
     private void RefreshExportTexts()
     {
-        ExportHeadline = Loc.T(exportHeadlineKey);
+        switch (exportPhase)
+        {
+            case ExportPhase.Collections:
+                ExportHeadline = Loc.T("ExportCollectionsHeadline");
+                ExportDetail = "";
+                return;
+
+            case ExportPhase.Scores:
+                ExportHeadline = Loc.T("ExportScoresHeadline");
+                ExportDetail = lastScoreProgress is { } sp ? Loc.F("ExportScoresDetail", Fmt.N(sp.Done), Fmt.N(sp.Total)) : "";
+                return;
+        }
+
+        ExportHeadline = Loc.T("ExportHeadline");
         if (lastProgress is not { } p) return;
 
         string eta = lastEta is { } t ? Loc.F("ExportEta", Fmt.Duration(t)) : "";
@@ -814,19 +1221,28 @@ public sealed partial class MainViewModel : ObservableObject
         CheckOsuRunning();
         bool stableWasRunning = StableRunning;
 
-        var selectedVms = allItems.Where(i => i.IsCopyCandidate && i.IsSelected)
-            .OrderBy(i => i.Artist, StringComparer.OrdinalIgnoreCase).ToList();
+        var selectedVms = IncludeMaps
+            ? allItems.Where(i => i.IsCopyCandidate && i.IsSelected).OrderBy(i => i.Artist, StringComparer.OrdinalIgnoreCase).ToList()
+            : [];
         var selected = selectedVms.Select(i => i.Item).ToList();
         int total = selected.Count;
         long totalBytes = selected.Sum(i => i.Bytes);
 
+        var selectedScoreVms = IncludeScores && ScoresAvailable
+            ? allScores.Where(s => s.IsCopyCandidate && s.IsSelected && s.IsReady).ToList()
+            : [];
+        var selectedScores = selectedScoreVms.Select(s => s.Item).ToList();
+        bool doCollections = WillCopyCollections;
+
         RecentlyExported.Clear();
         IsStopping = false;
+        CanStop = total > 0;
         CircleApproach = 0;
         CircleBurst = 0;
         CircleText = "0";
-        exportHeadlineKey = "ExportHeadline";
+        exportPhase = total > 0 ? ExportPhase.Maps : selectedScores.Count > 0 ? ExportPhase.Scores : ExportPhase.Collections;
         lastProgress = new ExportProgress(0, total, null, 0, totalBytes);
+        lastScoreProgress = new ScoreExportProgress(0, selectedScores.Count, null);
         lastEta = null;
         RefreshExportTexts();
         CurrentScreen = Screen.Exporting;
@@ -867,27 +1283,32 @@ public sealed partial class MainViewModel : ObservableObject
         string? oszDir = ExportAsOsz ? st.SongsDir : null;
         var token = exportCts.Token;
 
-        ExportResult result;
-        try
+        // 1. Les maps.
+        var result = new ExportResult();
+        if (total > 0)
         {
-            result = await Task.Run(() => Exporter.Run(selected, lz, st.SongsDir, oszDir, idx, progress, token));
-        }
-        catch (Exception e)
-        {
-            result = new ExportResult();
-            result.Failed.Add((selected.FirstOrDefault() ?? plan.Items[0], e.Message));
+            try
+            {
+                result = await Task.Run(() => Exporter.Run(selected, lz, st.SongsDir, oszDir, idx, progress, token));
+            }
+            catch (Exception e)
+            {
+                result = new ExportResult();
+                result.Failed.Add((selected[0], e.Message));
+            }
         }
 
+        // 2. Les collections.
         CollectionsExportResult? coll = null;
         string? collError = null;
-        if (WillExportCollections && stableWasRunning)
+        if (doCollections && stableWasRunning)
         {
             // stable réécrit collection.db en quittant : écrire maintenant serait perdu.
             collError = Loc.T("CollStableWasOpen");
         }
-        else if (WillExportCollections && st.CollectionDbPath != null && !result.DiskFull)
+        else if (doCollections && st.CollectionDbPath != null && !result.DiskFull)
         {
-            exportHeadlineKey = "ExportCollectionsHeadline";
+            exportPhase = ExportPhase.Collections;
             RefreshExportTexts();
             try
             {
@@ -900,16 +1321,63 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
 
+        // 3. Les scores : après les maps, pour que ceux des maps tout juste copiées puissent suivre.
+        ScoreExportResult? scoreResult = null;
+        string? scoreError = null;
+        if (selectedScores.Count > 0)
+        {
+            if (stableWasRunning)
+                scoreError = Loc.T("ScoresStableWasOpen");
+            else if (st.InstallDir == null)
+                scoreError = Loc.T("ScoresNoInstall");
+            else if (result.Cancelled || result.DiskFull)
+                scoreError = null; // copie interrompue : on n'ajoute pas les scores, l'utilisateur relancera
+            else
+            {
+                exportPhase = ExportPhase.Scores;
+                CanStop = false;
+                CircleApproach = 0;
+                CircleText = "0";
+                RefreshExportTexts();
+
+                var available = new HashSet<string>(idx.Md5s, StringComparer.OrdinalIgnoreCase);
+                foreach (var (item, _) in result.Exported)
+                    foreach (var b in item.Set.Beatmaps)
+                        available.Add(b.Md5);
+
+                var scoreVmByItem = selectedScoreVms.ToDictionary(v => v.Item);
+                var scoreProgress = new Progress<ScoreExportProgress>(p =>
+                {
+                    lastScoreProgress = p;
+                    if (p.Current != null && scoreVmByItem.TryGetValue(p.Current, out var vm)) CurrentExport = vm.Map;
+                    CircleText = Fmt.N(p.Done);
+                    CircleApproach = p.Total == 0 ? 1 : (double)p.Done / p.Total;
+                    RefreshExportTexts();
+                });
+
+                int version = scorePlan?.StableVersion ?? StableScoresDb.FallbackVersion;
+                string installDir = st.InstallDir;
+                try
+                {
+                    scoreResult = await Task.Run(() => ScoreExporter.Run(selectedScores, lz, installDir, available, version, scoreProgress));
+                }
+                catch (Exception e)
+                {
+                    scoreError = e.Message;
+                }
+            }
+        }
+
         try
         {
-            ReportPath = Report.Write(lz, st, plan, selected, result, coll, collError);
+            ReportPath = Report.Write(lz, st, plan, selected, result, coll, collError, scorePlan, scoreResult, scoreError);
         }
         catch
         {
             ReportPath = null;
         }
 
-        ShowDone(result, coll, collError, total, sw.Elapsed);
+        ShowDone(new DoneState(result, coll, collError, total, scoreResult, scoreError, selectedScores.Count, sw.Elapsed));
     }
 
     [RelayCommand]
@@ -924,22 +1392,31 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string doneHeadline = "";
     [ObservableProperty] private string doneDetail = "";
     [ObservableProperty] private string doneCollections = "";
+    [ObservableProperty] private string doneScores = "";
     [ObservableProperty] private string? reportPath;
     [ObservableProperty] private bool hasFailures;
     [ObservableProperty] private string nextStepText = "";
 
     public ObservableCollection<string> DoneProblems { get; } = [];
 
-    private sealed record DoneState(ExportResult Result, CollectionsExportResult? Collections, string? CollectionsError, int Total, TimeSpan Elapsed);
+    private sealed record DoneState(
+        ExportResult Result,
+        CollectionsExportResult? Collections,
+        string? CollectionsError,
+        int Total,
+        ScoreExportResult? Scores,
+        string? ScoresError,
+        int TotalScores,
+        TimeSpan Elapsed);
 
     private DoneState? lastDone;
 
-    private void ShowDone(ExportResult result, CollectionsExportResult? coll, string? collError, int total, TimeSpan elapsed)
+    private void ShowDone(DoneState done)
     {
-        lastDone = new DoneState(result, coll, collError, total, elapsed);
+        lastDone = done;
         BuildDoneTexts();
 
-        CircleText = Fmt.N(result.Exported.Count);
+        CircleText = Fmt.N(done.Result.Exported.Count + (done.Scores?.Added.Count ?? 0));
         CurrentExport = null;
         OnPropertyChanged(nameof(CanLaunchStable));
         CurrentScreen = Screen.Done;
@@ -952,14 +1429,23 @@ public sealed partial class MainViewModel : ObservableObject
         if (lastDone is not { } d) return;
         var result = d.Result;
         int n = result.Exported.Count;
+        int s = d.Scores?.Added.Count ?? 0;
 
-        DoneHeadline = n == 0 ? Loc.T("DoneNone") : Loc.P("PDoneHeadline", n);
+        DoneHeadline = n > 0 && s > 0 ? Loc.F("DoneBoth", Loc.P("PNomMaps", n), Loc.P("PNomScores", s))
+            : n > 0 ? Loc.P("PDoneHeadline", n)
+            : s > 0 ? Loc.P("PDoneScoresHeadline", s)
+            : Loc.T(d.Total > 0 && d.TotalScores == 0 ? "DoneNone" : "DoneNothing");
 
-        var parts = new List<string> { Loc.F("DoneBytes", Fmt.Bytes(result.BytesCopied), Fmt.Duration(d.Elapsed)) };
-        if (result.Cancelled) parts.Add(Loc.F("DoneCancelled", Loc.P("PMaps", d.Total - n - result.Failed.Count)));
-        if (result.DiskFull) parts.Add(Loc.T("DoneDiskFull"));
-        if (result.Failed.Count > 0) parts.Add(Loc.P("PDoneFailed", result.Failed.Count));
-        if (result.Warnings.Count > 0) parts.Add(Loc.P("PDoneWarnings", result.Warnings.Count));
+        var parts = new List<string>();
+        if (d.Total > 0)
+        {
+            parts.Add(Loc.F("DoneBytes", Fmt.Bytes(result.BytesCopied), Fmt.Duration(d.Elapsed)));
+            if (result.Cancelled) parts.Add(Loc.F("DoneCancelled", Loc.P("PMaps", d.Total - n - result.Failed.Count)));
+            if (result.DiskFull) parts.Add(Loc.T("DoneDiskFull"));
+            if (result.Failed.Count > 0) parts.Add(Loc.P("PDoneFailed", result.Failed.Count));
+            if (result.Warnings.Count > 0) parts.Add(Loc.P("PDoneWarnings", result.Warnings.Count));
+        }
+
         DoneDetail = string.Join(" ", parts);
 
         DoneCollections = d.Collections is { } c
@@ -967,11 +1453,31 @@ public sealed partial class MainViewModel : ObservableObject
               + (c.BackupPath != null ? Loc.F("DoneBackup", Path.GetFileName(c.BackupPath)) : "")
             : d.CollectionsError != null ? Loc.F("DoneCollFailed", d.CollectionsError) : "";
 
+        if (d.Scores is { Error: null } sr)
+        {
+            DoneScores = Loc.P("PDoneScores", sr.Added.Count)
+                         + (sr.BackupPath != null ? Loc.F("DoneScoresBackup", Path.GetFileName(sr.BackupPath)) : "")
+                         + (sr.MissingMap.Count > 0 ? Loc.P("PDoneScoresMissingMap", sr.MissingMap.Count) : "")
+                         + (sr.Failed.Count > 0 ? Loc.P("PDoneScoresFailedCount", sr.Failed.Count) : "");
+        }
+        else
+        {
+            string? error = d.Scores?.Error ?? d.ScoresError;
+            DoneScores = error != null ? Loc.F("DoneScoresFailed", error) : "";
+        }
+
         DoneProblems.Clear();
         foreach (var (item, error) in result.Failed) DoneProblems.Add(Loc.F("Line", item.Set.DisplayName, error));
         foreach (var w in result.Warnings) DoneProblems.Add(w.ToString());
+        if (d.Scores is { Error: null })
+            foreach (var (item, error) in d.Scores.Failed)
+                DoneProblems.Add(Loc.F("Line", item.DisplayName, error));
         HasFailures = DoneProblems.Count > 0;
-        NextStepText = Loc.T(ExportAsOsz ? "NextOsz" : "NextFolders");
+
+        string maps = Loc.T(ExportAsOsz ? "NextOsz" : "NextFolders");
+        NextStepText = n > 0 && s > 0 ? $"{maps} {Loc.T("NextScores")}"
+            : s > 0 ? Loc.T("NextScoresOnly")
+            : maps;
     }
 
     [RelayCommand]
@@ -1030,7 +1536,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         CurrentScreen = Screen.Exporting;
         CurrentExport = current;
-        exportHeadlineKey = "ExportHeadline";
+        exportPhase = ExportPhase.Maps;
+        CanStop = true;
         CircleText = Fmt.N(done);
         CircleApproach = (double)done / total;
         lastProgress = new ExportProgress(done, total, current.Item, 1_288_490_189, 3_650_722_201);
@@ -1039,12 +1546,21 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(8)) RecentlyExported.Add(i);
     }
 
-    internal void TestShowDone(int n)
+    internal void TestShowDone(int n, int scores = 0)
     {
         var r = new ExportResult { BytesCopied = 3_456_789_012 };
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(n)) r.Exported.Add((i.Item, "x"));
         r.Warnings.Add(new ExportWarning("1011 Artist K - No audio K (x)", false, "audio.mp3"));
-        ShowDone(r, new CollectionsExportResult(3, 2, 140, "collection.db.avant-exotique-20261029-010203", "collection.db"), null, n, TimeSpan.FromSeconds(162));
+
+        ScoreExportResult? sr = null;
+        if (scores > 0)
+        {
+            sr = new ScoreExportResult { BackupPath = "scores.db.avant-exotique-20261030-140512" };
+            foreach (var s in allScores.Where(s => s.IsCopyCandidate).Take(scores)) sr.Added.Add(s.Item);
+        }
+
+        ShowDone(new DoneState(r, new CollectionsExportResult(3, 2, 140, "collection.db.avant-exotique-20261029-010203", "collection.db"),
+            null, n, sr, null, scores, TimeSpan.FromSeconds(162)));
     }
 
     internal void TestOpenConfirm() => AskExport();
@@ -1072,7 +1588,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (screen == Screen.Analyzing)
         {
             LazerStep.Start(() => "");
-            LazerStep.Finish(() => Loc.P("PMaps", 6431));
+            LazerStep.Finish(() => $"{Loc.P("PMaps", 6431)}, {Loc.P("PScores", 2874)}");
             SongsStep.Start(() => "");
             SongsStep.Fraction = 0.58;
             SongsStep.SetDetail(() => Loc.F("StepDiffProgress", Fmt.N(12480), Fmt.N(21354)));
@@ -1082,6 +1598,17 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     internal void TestSetLanguage(Lang lang) => SetLanguage(lang);
+
+    internal void TestSetSection(Section section) => CurrentSection = section;
+
+    /// <summary>Attend que la sélection (mise à jour en différé) soit recalculée.</summary>
+    internal void TestFlushSelection()
+    {
+        refreshQueued = false;
+        RefreshSelection();
+    }
+
+    internal IReadOnlyList<ScoreItemViewModel> TestScores => allScores;
 }
 
 public enum StepState { Pending, Running, Done }

@@ -8,6 +8,12 @@ internal static class E2E
 {
     public static void Run(string lazerDir, string stableDir)
     {
+        var saved = Settings.Load();
+        saved.CopyBeatmaps = true;
+        saved.CopyScores = true;
+        saved.ScoresIncludeOthers = false;
+        saved.Save();
+
         var vm = new MainViewModel();
         vm.TestUseLocations(Paths.LazerAt(lazerDir), Paths.StableAt(stableDir));
         var w = new MainWindow(vm, autoStart: false) { Width = 1280, Height = 820 };
@@ -18,6 +24,10 @@ internal static class E2E
         Console.WriteLine($"analyse : {sw.ElapsedMilliseconds} ms, à copier {vm.ToCopyCount}, déjà là {vm.PresentCount}, ignorées {vm.IgnoredCount}");
         Console.WriteLine($"progression : {vm.AnalysisProgress:P0} ; étapes : {vm.LazerStep.State} ({vm.LazerStep.Detail}), {vm.SongsStep.State} ({vm.SongsStep.Detail}), {vm.CompareStep.State} ({vm.CompareStep.Detail})");
         Console.WriteLine($"collections : {vm.CollectionsLabel} / {vm.CollectionsDetail} / dispo={vm.CollectionsAvailable}");
+        Console.WriteLine($"scores : à copier {vm.ScoreToCopyCount}, déjà là {vm.ScorePresentCount}, ignorés {vm.ScoreIgnoredCount}, autres joueurs {vm.OthersCount}, section={vm.CurrentSection}");
+        Console.WriteLine($"titre : {vm.Headline}");
+        foreach (var g in vm.TestScores.Where(x => x.IsIgnored).GroupBy(x => x.ReasonText))
+            Console.WriteLine($"  ignoré ×{g.Count()} : {g.Key}");
 
         sw.Restart();
         vm.SearchText = "bulk title 12";
@@ -39,6 +49,9 @@ internal static class E2E
         vm.ShowOsu = true;
         Pump(0.3);
         Console.WriteLine($"après « Tout cocher » : {vm.SelectedCount} cochées, bouton : {vm.ExportButtonText}");
+        vm.TestFlushSelection();
+        Pump(0.3);
+        Console.WriteLine($"scores cochés prêts {vm.SelectedScoreCount}, en attente de leur map {vm.WaitingScoreCount} ; sélection : {vm.SelectionText}");
 
         vm.AskExportCommand.Execute(null);
         Pump(0.2);
@@ -47,12 +60,34 @@ internal static class E2E
         sw.Restart();
         Wait(vm.ConfirmExportCommand.ExecuteAsync(null));
         Console.WriteLine($"copie : {sw.ElapsedMilliseconds} ms, écran={vm.CurrentScreen}");
-        Console.WriteLine($"bilan : {vm.DoneHeadline} | {vm.DoneDetail} | {vm.DoneCollections}");
+        Console.WriteLine($"bilan : {vm.DoneHeadline} | {vm.DoneDetail} | {vm.DoneCollections} | {vm.DoneScores}");
+        Console.WriteLine($"suite : {vm.NextStepText}");
         Console.WriteLine($"problèmes : {vm.DoneProblems.Count}, rapport : {vm.ReportPath}");
 
         Wait(vm.BackToListCommand.ExecuteAsync(null));
         Console.WriteLine($"nouvelle analyse : à copier {vm.ToCopyCount} (attendu 2 : {string.Join(", ", unchecked2.Select(u => u.Title))})");
         Console.WriteLine($"collections ensuite : {vm.CollectionsDetail} dispo={vm.CollectionsAvailable}");
+        Console.WriteLine($"scores ensuite : à copier {vm.ScoreToCopyCount}, déjà là {vm.ScorePresentCount}, ignorés {vm.ScoreIgnoredCount}");
+
+        // Deuxième passage : seulement les scores, avec les replays des autres joueurs.
+        vm.IncludeMaps = false;
+        vm.IncludeOthers = true;
+        vm.TestFlushSelection();
+        Pump(0.3);
+        Console.WriteLine($"scores seuls : bouton « {vm.ExportButtonText} », sélection : {vm.SelectionText}");
+        vm.AskExportCommand.Execute(null);
+        Pump(0.2);
+        Console.WriteLine($"confirmation : {vm.ConfirmTitle} | {vm.ConfirmBody} | {vm.ConfirmDestination.Replace("\n", " + ")}");
+        Wait(vm.ConfirmExportCommand.ExecuteAsync(null));
+        Console.WriteLine($"bilan : {vm.DoneHeadline} | {vm.DoneDetail} | {vm.DoneScores}");
+        Console.WriteLine($"suite : {vm.NextStepText}");
+        Wait(vm.BackToListCommand.ExecuteAsync(null));
+        Console.WriteLine($"après : maps à copier {vm.ToCopyCount}, scores à copier {vm.ScoreToCopyCount}, déjà là {vm.ScorePresentCount}");
+
+        saved = Settings.Load();
+        saved.CopyBeatmaps = true;
+        saved.ScoresIncludeOthers = false;
+        saved.Save();
     }
 
     private static void Wait(Task t)

@@ -62,7 +62,7 @@
       <!-- Résumé : copie en cours -->
       <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding IsExporting}" MaxWidth="620"
                   HorizontalAlignment="Left">
-        <TextBlock Classes="h1" Text="{Binding ExportHeadline}" />
+        <TextBlock Classes="h1" Text="{Binding ExportHeadline}" TextWrapping="Wrap" />
         <TextBlock Text="{Binding CurrentExport.FullName, FallbackValue=''}" FontSize="16" FontWeight="SemiBold"
                    TextTrimming="CharacterEllipsis" />
         <TextBlock Classes="lead" Text="{Binding ExportDetail}" />
@@ -71,9 +71,10 @@
       <!-- Résumé : bilan -->
       <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" IsVisible="{Binding IsDone}" MaxWidth="620"
                   HorizontalAlignment="Left">
-        <TextBlock Classes="h1" Text="{Binding DoneHeadline}" />
-        <TextBlock Classes="lead" Text="{Binding DoneDetail}" />
+        <TextBlock Classes="h1" Text="{Binding DoneHeadline}" TextWrapping="Wrap" />
+        <TextBlock Classes="lead" Text="{Binding DoneDetail}" IsVisible="{Binding DoneDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <TextBlock Classes="lead" Text="{Binding DoneCollections}" IsVisible="{Binding DoneCollections, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="lead" Text="{Binding DoneScores}" IsVisible="{Binding DoneScores, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
 
       <!-- Trajet lazer → stable -->
@@ -174,10 +175,34 @@
     </ScrollViewer>
 
     <!-- ===================================================== liste à valider -->
-    <Grid Grid.Row="2" ColumnDefinitions="262,*" Margin="20,0,28,0" IsVisible="{Binding IsReview}">
+    <Grid Grid.Row="2" RowDefinitions="Auto,*" ColumnDefinitions="262,*" Margin="20,0,28,0" IsVisible="{Binding IsReview}">
 
-      <!-- Colonne gauche : onglets, modes, options de copie -->
-      <ScrollViewer Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto">
+      <!-- Beatmaps / Scores : l'onglet choisit ce qu'on regarde, la case ce qu'on copie. -->
+      <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+        <RadioButton Classes="section" GroupName="section" IsChecked="{Binding IsMapsSection}">
+          <Grid ColumnDefinitions="Auto,*">
+            <CheckBox IsChecked="{Binding IncludeMaps}" ToolTip.Tip="{app:Tr SectionMapsTip}" VerticalAlignment="Center"
+                      MinWidth="0" Padding="0" Margin="0,0,12,0" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{app:Tr SectionMaps}" Classes="display" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="{Binding MapsSectionDetail}" Classes="muted" FontSize="12.5" />
+            </StackPanel>
+          </Grid>
+        </RadioButton>
+        <RadioButton Classes="section" GroupName="section" IsChecked="{Binding IsScoresSection}">
+          <Grid ColumnDefinitions="Auto,*">
+            <CheckBox IsChecked="{Binding IncludeScores}" IsEnabled="{Binding ScoresAvailable}" ToolTip.Tip="{app:Tr SectionScoresTip}"
+                      VerticalAlignment="Center" MinWidth="0" Padding="0" Margin="0,0,12,0" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{app:Tr SectionScores}" Classes="display" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="{Binding ScoresSectionDetail}" Classes="muted" FontSize="12.5" />
+            </StackPanel>
+          </Grid>
+        </RadioButton>
+      </StackPanel>
+
+      <!-- Colonne gauche des beatmaps : onglets, modes, options de copie -->
+      <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsMapsSection}">
         <StackPanel Spacing="2" Margin="0,0,12,12">
           <RadioButton Classes="tab" GroupName="tabs" Content="{app:Tr TabToCopy}" Tag="{Binding ToCopyCountText}"
                        BorderBrush="{StaticResource Lazer}" IsChecked="{Binding IsToCopyTab}" />
@@ -220,8 +245,40 @@
         </StackPanel>
       </ScrollViewer>
 
-      <!-- Liste -->
-      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+      <!-- Colonne gauche des scores -->
+      <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsScoresSection}">
+        <StackPanel Spacing="2" Margin="0,0,12,12">
+          <RadioButton Classes="tab" GroupName="scoretabs" Content="{app:Tr TabToCopy}" Tag="{Binding ScoreToCopyCountText}"
+                       BorderBrush="{StaticResource Lazer}" IsChecked="{Binding IsScoreToCopyTab}" />
+          <RadioButton Classes="tab" GroupName="scoretabs" Content="{app:Tr TabPresent}" Tag="{Binding ScorePresentCountText}"
+                       BorderBrush="{StaticResource Stable}" IsChecked="{Binding IsScorePresentTab}" />
+          <RadioButton Classes="tab" GroupName="scoretabs" Content="{app:Tr TabIgnoredScores}" Tag="{Binding ScoreIgnoredCountText}"
+                       BorderBrush="{StaticResource Warn}" IsChecked="{Binding IsScoreIgnoredTab}" />
+
+          <TextBlock Classes="group" Text="{app:Tr GroupModes}" Margin="4,18,0,8" />
+          <WrapPanel ItemSpacing="5" LineSpacing="5" Margin="2,0,0,0">
+            <ToggleButton Classes="chip" Content="osu!" IsChecked="{Binding ShowOsu}" />
+            <ToggleButton Classes="chip" Content="taiko" IsChecked="{Binding ShowTaiko}" />
+            <ToggleButton Classes="chip" Content="catch" IsChecked="{Binding ShowCatch}" />
+            <ToggleButton Classes="chip" Content="mania" IsChecked="{Binding ShowMania}" />
+          </WrapPanel>
+
+          <StackPanel IsVisible="{Binding HasOthers}">
+            <TextBlock Classes="group" Text="{app:Tr GroupPlayers}" Margin="4,18,0,4" />
+            <CheckBox IsChecked="{Binding IncludeOthers}">
+              <TextBlock Text="{Binding IncludeOthersLabel}" TextWrapping="Wrap" />
+            </CheckBox>
+            <TextBlock Text="{Binding OthersDetail}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" Margin="30,2,0,0"
+                       LineHeight="18" />
+          </StackPanel>
+
+          <TextBlock Classes="group" Text="{app:Tr GroupGoodToKnow}" Margin="4,18,0,6" />
+          <TextBlock Text="{app:Tr ScoresNote}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" LineHeight="18" Margin="4,0,0,0" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Liste des beatmaps -->
+      <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsMapsSection}">
         <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
           <TextBox Classes="search" Text="{Binding SearchText}" Watermark="{app:Tr SearchWatermark}" />
           <ComboBox Grid.Column="1" Width="232" Margin="10,0,0,0" ItemsSource="{Binding SortOptions}"
@@ -234,7 +291,11 @@
           </StackPanel>
         </Grid>
 
-        <Border Grid.Row="1" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
+        <Border Grid.Row="1" Classes="notice" IsVisible="{Binding ShowMapsOff}">
+          <TextBlock Text="{app:Tr SectionMapsOff}" />
+        </Border>
+
+        <Border Grid.Row="2" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
           <Grid>
             <ListBox x:Name="MapList" Classes="maps" ItemsSource="{Binding VisibleItems}" SelectionMode="Single"
                      KeyDown="OnListKeyDown">
@@ -296,6 +357,95 @@
 
             <TextBlock Text="{Binding EmptyListText}" Classes="lead" HorizontalAlignment="Center" VerticalAlignment="Center"
                        TextAlignment="Center" MaxWidth="420" IsVisible="{Binding IsListEmpty}" />
+          </Grid>
+        </Border>
+      </Grid>
+
+      <!-- Liste des scores -->
+      <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsScoresSection}">
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+          <TextBox Classes="search" Text="{Binding ScoreSearchText}" Watermark="{app:Tr SearchScoresWatermark}" />
+          <ComboBox Grid.Column="1" Width="232" Margin="10,0,0,0" ItemsSource="{Binding ScoreSortOptions}"
+                    SelectedItem="{Binding ScoreSort}" VerticalAlignment="Stretch" ToolTip.Tip="{app:Tr SortTip}" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0" IsVisible="{Binding IsScoreToCopyTab}">
+            <Button Classes="ghost" Content="{app:Tr CheckAll}" Command="{Binding SelectAllScoresCommand}"
+                    ToolTip.Tip="{app:Tr CheckAllScoresTip}" />
+            <Button Classes="ghost" Content="{app:Tr UncheckAll}" Command="{Binding SelectNoScoresCommand}"
+                    ToolTip.Tip="{app:Tr UncheckAllScoresTip}" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="1">
+          <Border Classes="notice" IsVisible="{Binding ShowScoresOff}">
+            <TextBlock Text="{app:Tr SectionScoresOff}" />
+          </Border>
+          <Border Classes="notice" IsVisible="{Binding !ScoresAvailable}">
+            <TextBlock Text="{Binding ScoresUnavailableText}" />
+          </Border>
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
+          <Grid>
+            <ListBox x:Name="ScoreList" Classes="maps" ItemsSource="{Binding VisibleScores}" SelectionMode="Single"
+                     KeyDown="OnListKeyDown">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ScoreItemViewModel">
+                  <Border Background="Transparent" Padding="10,8,14,8" Tapped="OnRowTapped">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+                      <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" IsVisible="{Binding IsCopyCandidate}"
+                                VerticalAlignment="Center" Margin="2,0,6,0" MinWidth="0" />
+
+                      <Border Grid.Column="1" Width="112" Height="63" CornerRadius="8" ClipToBounds="True">
+                        <Border.Background>
+                          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#3A2556" Offset="0" />
+                            <GradientStop Color="#22304F" Offset="1" />
+                          </LinearGradientBrush>
+                        </Border.Background>
+                        <Image Source="{Binding Map.Thumbnail, FallbackValue={x:Null}}" Stretch="UniformToFill" />
+                      </Border>
+
+                      <StackPanel Grid.Column="2" Margin="16,0,12,0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding SubLine}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,5,0,0">
+                          <ItemsControl ItemsSource="{Binding Mods}" VerticalAlignment="Center" IsVisible="{Binding HasMods}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="x:String">
+                                <Border Classes="mod">
+                                  <TextBlock Text="{Binding}" />
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <TextBlock Text="{Binding OriginText}" Classes="faint" FontSize="12" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding NoteText}" Foreground="{Binding NoteBrush}" FontSize="12.5" TextWrapping="Wrap"
+                                   Margin="0,4,0,0" IsVisible="{Binding HasNote}" />
+                        <TextBlock Text="{Binding ReasonText}" Foreground="{StaticResource Warn}" FontSize="12.5"
+                                   TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding IsIgnored}" />
+                      </StackPanel>
+
+                      <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,16,0" Spacing="1">
+                        <TextBlock Text="{Binding ScoreText}" Classes="display" FontWeight="Bold" FontSize="17" HorizontalAlignment="Right" />
+                        <TextBlock Text="{Binding AccComboText}" Classes="muted" FontSize="12.5" HorizontalAlignment="Right" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Column="4" Text="{Binding GradeText}" Foreground="{Binding GradeBrush}" Classes="display"
+                                 FontWeight="ExtraBold" FontSize="28" Width="52" TextAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="{Binding ScoreEmptyText}" Classes="lead" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" MaxWidth="420" IsVisible="{Binding IsScoreListEmpty}" />
           </Grid>
         </Border>
       </Grid>
@@ -403,10 +553,10 @@
 
       <!-- Copie : arrêt -->
       <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsExporting}">
-        <TextBlock Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap"
+        <TextBlock Classes="muted" VerticalAlignment="Center" TextWrapping="Wrap" IsVisible="{Binding CanStop}"
                    Text="{app:Tr StopNote}" />
         <Button Grid.Column="1" Classes="ghost" Content="{app:Tr StopButton}" Command="{Binding StopExportCommand}"
-                IsEnabled="{Binding !IsStopping}" />
+                IsEnabled="{Binding !IsStopping}" IsVisible="{Binding CanStop}" />
       </Grid>
 
       <!-- Bilan : actions -->

@@ -33,6 +33,20 @@ public static class Fmt
         return num + "\u00A0" + units[u];
     }
 
+    /// <summary>Précision : 98,64 % (fr), 98.64% (en), 98,64% (ru).</summary>
+    public static string Percent(double fraction)
+    {
+        // Tronquée comme dans osu! : 99,999 % ne doit pas s'afficher 100,00 %.
+        double v = Math.Floor(fraction * 10000 + 1e-7) / 100;
+        string num = v.ToString("0.00", CultureInfo.InvariantCulture);
+        return L switch
+        {
+            Lang.En => num + "%",
+            Lang.Ru => num.Replace('.', ',') + "%",
+            _ => num.Replace('.', ',') + " %",
+        };
+    }
+
     public static string Duration(TimeSpan t)
     {
         (string s, string min, string h) = L == Lang.Ru ? ("с", "мин", "ч") : ("s", "min", "h");
@@ -63,6 +77,9 @@ public sealed class Settings
     public string? StablePath { get; set; }
     public bool ExportAsOsz { get; set; }
     public bool ExportCollections { get; set; } = true;
+    public bool CopyBeatmaps { get; set; } = true;
+    public bool CopyScores { get; set; } = true;
+    public bool ScoresIncludeOthers { get; set; }
 
     /// <summary>« fr », « en » ou « ru » ; vide : langue de Windows.</summary>
     public string? Language { get; set; }
