@@ -50,6 +50,13 @@ dotnet publish Exotique.csproj -c Release -r win-x64 --self-contained -p:Publish
 
 Exotique reads lazer's database with the same Realm version as lazer (`RealmVersion` in `Exotique.csproj`). If lazer ever moves to a newer Realm, align it with `osu.Game/osu.Game.csproj` in [ppy/osu](https://github.com/ppy/osu).
 
+### Publishing a release
+
+1. Raise `<Version>` in `Exotique.csproj` (and `version` in `app.manifest`), and write the notes in `.github/release-notes.md`.
+2. Push to `main`, then in **Actions** → **Release** → **Run workflow**.
+
+The workflow builds `Exotique.exe`, creates the tag (`v2.3` for version `2.3.0`), and publishes the release with the exe and its SHA-256. It stops if that release already exists.
+
 ### Project layout
 
 | Folder | Content |

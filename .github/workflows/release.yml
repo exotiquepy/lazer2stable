@@ -1,0 +1,57 @@
+name: Release
+
+# Bouton « Run workflow » dans l'onglet Actions : compile Exotique.exe et publie la release.
+# Avant de cliquer : <Version> à jour dans Exotique.csproj, et notes de version dans .github/release-notes.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          version=$(dotnet msbuild Exotique.csproj -getProperty:Version | tr -d '\r[:space:]')
+          IFS=. read -r major minor patch _ <<< "$version"
+          if [ -n "$patch" ] && [ "$patch" != "0" ]; then tag="v$major.$minor.$patch"; else tag="v$major.$minor"; fi
+          echo "Version $version, tag $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Stop if this release already exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::error::The release $TAG already exists. Raise <Version> in Exotique.csproj first."
+            exit 1
+          fi
+
+      - name: Publish Exotique.exe
+        run: >
+          dotnet publish Exotique.csproj -c Release -r win-x64 --self-contained
+          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true -p:DebugType=none -o publish
+
+      - name: Create the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          hash=$(sha256sum publish/Exotique.exe | cut -d' ' -f1)
+          { cat .github/release-notes.md; printf '\nSHA-256 `Exotique.exe`: `%s`\n' "$hash"; } > notes.md
+          gh release create "$TAG" publish/Exotique.exe --title "Exotique $TAG" --notes-file notes.md --target "$GITHUB_SHA"
