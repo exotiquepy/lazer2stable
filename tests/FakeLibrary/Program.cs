@@ -127,6 +127,17 @@ var schema = new RealmSchema.Builder
         Property.Primitive("Rank", RealmValueType.Int),
         Property.Primitive("IsLegacyScore", RealmValueType.Bool),
     },
+    new ObjectSchema.Builder("Skin", ObjectSchema.ObjectType.RealmObject)
+    {
+        Property.Primitive("ID", RealmValueType.Guid, isPrimaryKey: true),
+        Property.Primitive("Name", RealmValueType.String),
+        Property.Primitive("Creator", RealmValueType.String),
+        Property.Primitive("InstantiationInfo", RealmValueType.String),
+        Property.Primitive("Hash", RealmValueType.String),
+        Property.Primitive("Protected", RealmValueType.Bool),
+        Property.ObjectList("Files", "RealmNamedFileUsage"),
+        Property.Primitive("DeletePending", RealmValueType.Bool),
+    },
 };
 
 var config = new RealmConfiguration(Path.Combine(lazerDir, "client.realm"))
@@ -541,6 +552,60 @@ using (var realm = Realm.GetInstance(config))
             }
 
             expected.Add($"scores : {scoreNo} dans lazer ({inStable.Count} déjà dans stable)");
+
+            // ----------------------------------------------------------- skins
+            string stableSkins = Path.Combine(stableDir, "Skins");
+            Directory.CreateDirectory(stableSkins);
+            const string Legacy = "osu.Game.Skinning.LegacySkin, osu.Game";
+
+            byte[] Ini(string name, string author, (int, int, int) combo, string? prefix = null) => Encoding.UTF8.GetBytes(
+                $"[General]\r\nName: {name}\r\nAuthor: {author}\r\nVersion: 2.7\r\n\r\n[Colours]\r\nCombo1: {combo.Item1},{combo.Item2},{combo.Item3}\r\n" +
+                (prefix != null ? $"\r\n[Fonts]\r\nHitCirclePrefix: {prefix}\r\n" : ""));
+
+            void AddSkin(string name, string creator, string instantiation, (string File, byte[] Content)[] files, bool isProtected = false)
+            {
+                var skin = (IRealmObject)realm.DynamicApi.CreateObject("Skin", Guid.NewGuid());
+                skin.DynamicApi.Set("Name", name);
+                skin.DynamicApi.Set("Creator", creator);
+                skin.DynamicApi.Set("InstantiationInfo", instantiation);
+                skin.DynamicApi.Set("Protected", isProtected);
+                skin.DynamicApi.Set("Hash", Guid.NewGuid().ToString("N"));
+                var list = skin.DynamicApi.GetList<IEmbeddedObject>("Files");
+                foreach (var (file, content) in files)
+                {
+                    var usage = realm.DynamicApi.AddEmbeddedObjectToList(list);
+                    usage.DynamicApi.Set("File", RealmValue.Object(AddFile(content)));
+                    usage.DynamicApi.Set("Filename", file);
+                }
+            }
+
+            (string, byte[])[] Elements((byte, byte, byte) cursor, string numberFile = "default-1@2x.png") =>
+            [
+                ("hitcircle@2x.png", Png(128, 128, (x, y) => Disc(x, y, 128, 60, (235, 235, 235)))),
+                ("hitcircleoverlay@2x.png", Png(128, 128, (x, y) => Ring(x, y, 128, 61, 8))),
+                (numberFile, Png(36, 52, (x, y) => x is >= 14 and < 24 || (y < 10 && x is >= 6 and < 24) ? ((byte)255, (byte)255, (byte)255, (byte)255) : ((byte)0, (byte)0, (byte)0, (byte)0))),
+                ("cursor@2x.png", Png(96, 96, (x, y) => Disc(x, y, 96, 40, cursor))),
+                ("normal-hitnormal.wav", Bin("hitnormal", 900)),
+            ];
+
+            AddSkin("Kairo Classic [Kairo 2024]", "Kairo", Legacy, [("skin.ini", Ini("Kairo Classic", "Kairo", (99, 201, 255))), .. Elements((255, 210, 90))]);
+            AddSkin("Neon Bloom", "plumcake", Legacy, [("skin.ini", Ini("Neon Bloom", "plumcake", (255, 98, 168))), .. Elements((140, 255, 220))]);
+            AddSkin("Cyan Pop", "Ryuu", Legacy,
+                [("skin.ini", Ini("Cyan Pop", "Ryuu", (80, 240, 220), "numbers\\cyan")), .. Elements((255, 255, 255), "numbers/cyan-1@2x.png")]);
+
+            byte[] velvetIni = Ini("Velvet Night", "velvetpaw", (197, 139, 255));
+            AddSkin("Velvet Night [velvet night v2]", "velvetpaw", Legacy, [("skin.ini", velvetIni), .. Elements((255, 140, 120))]);
+            Directory.CreateDirectory(Path.Combine(stableSkins, "velvet night v2"));
+            File.WriteAllBytes(Path.Combine(stableSkins, "velvet night v2", "skin.ini"), velvetIni);
+
+            byte[] monoIni = Ini("Mono Lite", "Noxi", (230, 230, 230));
+            AddSkin("Mono Lite", "Noxi", Legacy, [("skin.ini", monoIni), .. Elements((200, 200, 200))]);
+            Directory.CreateDirectory(Path.Combine(stableSkins, "Mono Lite (export)"));
+            File.WriteAllBytes(Path.Combine(stableSkins, "Mono Lite (export)", "skin.ini"), monoIni);
+
+            AddSkin("My argon edit", "nightjar", "osu.Game.Skinning.ArgonSkin, osu.Game", [("MainHUDComponents.json", Bin("hud"))]);
+            AddSkin("osu! \"argon\" (2022)", "team osu!", "osu.Game.Skinning.ArgonSkin, osu.Game", [], isProtected: true);
+            expected.Add("skins : 3 à copier, 2 déjà dans stable, 1 ignorée (argon)");
         }
 
         // ------------------------------------------------------------- volume
@@ -585,6 +650,72 @@ Console.WriteLine($"Généré dans {root}");
 foreach (string e in expected) Console.WriteLine("  " + e);
 
 // ---------------------------------------------------------------------- fonctions
+
+// PNG RGBA minimal (pour les aperçus de skins).
+static byte[] Png(int w, int h, Func<int, int, (byte R, byte G, byte B, byte A)> pixel)
+{
+    var raw = new MemoryStream();
+    for (int y = 0; y < h; y++)
+    {
+        raw.WriteByte(0);
+        for (int x = 0; x < w; x++)
+        {
+            var (r, g, b, a) = pixel(x, y);
+            raw.Write([r, g, b, a]);
+        }
+    }
+
+    byte[] idat;
+    using (var ms = new MemoryStream())
+    {
+        using (var z = new ZLibStream(ms, CompressionLevel.Optimal, leaveOpen: true)) z.Write(raw.ToArray());
+        idat = ms.ToArray();
+    }
+
+    var png = new MemoryStream();
+    png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+    void Chunk(string type, byte[] data)
+    {
+        byte[] t = Encoding.ASCII.GetBytes(type);
+        png.Write(BigEndian((uint)data.Length));
+        png.Write(t);
+        png.Write(data);
+        png.Write(BigEndian(Crc32([.. t, .. data])));
+    }
+
+    Chunk("IHDR", [.. BigEndian((uint)w), .. BigEndian((uint)h), 8, 6, 0, 0, 0]);
+    Chunk("IDAT", idat);
+    Chunk("IEND", []);
+    return png.ToArray();
+
+    static byte[] BigEndian(uint v) => [(byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v];
+
+    static uint Crc32(byte[] data)
+    {
+        uint crc = 0xFFFFFFFF;
+        foreach (byte d in data)
+        {
+            crc ^= d;
+            for (int k = 0; k < 8; k++) crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
+        }
+
+        return ~crc;
+    }
+}
+
+static (byte, byte, byte, byte) Disc(int x, int y, int size, double radius, (byte R, byte G, byte B) c)
+{
+    double d = Math.Sqrt(Math.Pow(x - size / 2.0 + 0.5, 2) + Math.Pow(y - size / 2.0 + 0.5, 2));
+    if (d > radius) return (0, 0, 0, 0);
+    double shade = 0.78 + 0.22 * (1 - d / radius);
+    return ((byte)(c.R * shade), (byte)(c.G * shade), (byte)(c.B * shade), 255);
+}
+
+static (byte, byte, byte, byte) Ring(int x, int y, int size, double radius, double width)
+{
+    double d = Math.Sqrt(Math.Pow(x - size / 2.0 + 0.5, 2) + Math.Pow(y - size / 2.0 + 0.5, 2));
+    return d <= radius && d >= radius - width ? ((byte)255, (byte)255, (byte)255, (byte)255) : ((byte)0, (byte)0, (byte)0, (byte)0);
+}
 
 static byte[] Bin(string seed, int size = 64)
 {

@@ -228,7 +228,8 @@ public static class Exporter
         return Path.Combine(parts);
     }
 
-    private static string SanitizeSegment(string s)
+    /// <summary>Nom de fichier ou de dossier sûr sous Windows (caractères interdits remplacés, noms réservés évités).</summary>
+    public static string SanitizeSegment(string s)
     {
         var sb = new StringBuilder(s.Length);
         foreach (char c in s)

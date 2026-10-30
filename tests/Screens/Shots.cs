@@ -22,7 +22,7 @@ internal static class Shots
 
         if (args.Length > 5 && args[5] == "e2e")
         {
-            E2E.Run(lazerDir, stableDir);
+            E2E.Run(lazerDir, stableDir, args.Length > 6 ? args[6] : null);
             return;
         }
 
@@ -104,6 +104,35 @@ internal static class Shots
         vm.IncludeScores = true;
         Pump(0.4);
 
+        // Skins.
+        vm.TestSetSection(Section.Skins);
+        Pump(1.2);
+        Save(w, outDir, "3i-skins");
+        vm.SelectedSkinTab = ListTab.Present;
+        Pump(0.8);
+        Save(w, outDir, "3j-skins-deja-la");
+        vm.SelectedSkinTab = ListTab.ToCopy;
+        vm.TestSetSection(Section.Maps);
+        Pump(0.4);
+
+        // Annulation de la dernière copie : lien en haut de la liste, puis dialogue.
+        vm.TestSetLastCopy(new CopyJournal
+        {
+            Date = new DateTime(2026, 10, 30, 14, 5, 0),
+            Maps = [.. Enumerable.Range(0, 48).Select(i => $"m{i}")],
+            Scores = [.. Enumerable.Range(0, 17).Select(i => new JournalScore(null, $"k{i}", "r"))],
+            Skins = ["Kairo 2024", "Neon Bloom"],
+            AddedCollections = ["Farm 300pp"],
+        });
+        Pump(0.4);
+        Save(w, outDir, "3k-lien-annuler");
+        vm.TestOpenUndo();
+        Pump(0.5);
+        Save(w, outDir, "3l-annulation");
+        vm.CancelUndoCommand.Execute(null);
+        vm.TestSetLastCopy(null);
+        Pump(0.3);
+
         vm.SearchText = "lumen";
         Pump(0.8);
         Save(w, outDir, "4-recherche");
@@ -146,7 +175,8 @@ internal static class Shots
         Pump(1.2);
         Save(w, outDir, "8-copie");
 
-        vm.TestShowDone(48, 17);
+        vm.TestSetLastCopy(new CopyJournal { Maps = ["x"] });
+        vm.TestShowDone(48, 17, 3);
         Pump(1.5);
         Save(w, outDir, "9-bilan");
 

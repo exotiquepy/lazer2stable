@@ -11,10 +11,17 @@ public enum Screen { Setup, Analyzing, Review, Exporting, Done }
 
 public enum ListTab { ToCopy, Present, Ignored }
 
-/// <summary>Ce qu'on regarde dans la liste : les beatmaps ou les scores.</summary>
-public enum Section { Maps, Scores }
+/// <summary>Ce qu'on regarde dans la liste : les beatmaps, les scores ou les skins.</summary>
+public enum Section { Maps, Scores, Skins }
 
 public sealed record SortOption(string Key, Func<IEnumerable<MapItemViewModel>, IEnumerable<MapItemViewModel>> Apply)
+{
+    public string Label => Loc.T(Key);
+
+    public override string ToString() => Label;
+}
+
+public sealed record SkinSortOption(string Key, Func<IEnumerable<SkinItemViewModel>, IEnumerable<SkinItemViewModel>> Apply)
 {
     public string Label => Loc.T(Key);
 
@@ -47,6 +54,9 @@ public sealed partial class MainViewModel : ObservableObject
     private List<MapItemViewModel> allItems = [];
     private Dictionary<PlanItem, MapItemViewModel> byItem = [];
     private List<ScoreItemViewModel> allScores = [];
+    private SkinPlan? skinPlan;
+    private List<SkinItemViewModel> allSkins = [];
+    private CancellationTokenSource? skinSearchDebounce;
     private CancellationTokenSource? exportCts;
     private CancellationTokenSource? searchDebounce;
     private CancellationTokenSource? scoreSearchDebounce;
@@ -65,6 +75,10 @@ public sealed partial class MainViewModel : ObservableObject
         includeMaps = settings.CopyBeatmaps;
         includeScores = settings.CopyScores;
         includeOthers = settings.ScoresIncludeOthers;
+        includeSkins = settings.CopySkins;
+        skinSortOptions = BuildSkinSortOptions();
+        skinSort = skinSortOptions[0];
+        lastCopy = CopyJournal.Load();
         sortOptions = BuildSortOptions();
         sort = sortOptions[0];
         scoreSortOptions = BuildScoreSortOptions();
@@ -146,9 +160,15 @@ public sealed partial class MainViewModel : ObservableObject
         ScoreSort = ScoreSortOptions.First(o => o.Key == currentScore);
 
         foreach (var item in allItems) item.RefreshTexts();
+        var currentSkin = SkinSort.Key;
+        SkinSortOptions = BuildSkinSortOptions();
+        SkinSort = SkinSortOptions.First(o => o.Key == currentSkin);
+
         foreach (var s in allScores) s.RefreshTexts();
+        foreach (var k in allSkins) k.RefreshTexts();
         ApplyFilter();
         ApplyScoreFilter();
+        ApplySkinFilter();
         RefreshScoreTexts();
 
         foreach (string name in new[]
@@ -156,13 +176,16 @@ public sealed partial class MainViewModel : ObservableObject
                      nameof(Headline), nameof(SubHeadline), nameof(ToCopyCountText), nameof(PresentCountText), nameof(IgnoredCountText),
                      nameof(EmptyListText), nameof(VisibleCountText), nameof(ExportButtonText), nameof(SelectionText),
                      nameof(ScoreToCopyCountText), nameof(ScorePresentCountText), nameof(ScoreIgnoredCountText), nameof(ScoreEmptyText),
-                     nameof(MapsSectionDetail), nameof(ScoresSectionDetail),
+                     nameof(MapsSectionDetail), nameof(ScoresSectionDetail), nameof(SkinsSectionDetail),
+                     nameof(SkinToCopyCountText), nameof(SkinPresentCountText), nameof(SkinIgnoredCountText), nameof(SkinEmptyText),
+                     nameof(UndoLinkText),
                  })
             OnPropertyChanged(name);
 
         if (IsConfirmOpen) BuildConfirmTexts();
         if (CurrentScreen == Screen.Exporting) RefreshExportTexts();
         if (lastDone != null) BuildDoneTexts();
+        if (IsUndoOpen) BuildUndoTexts();
     }
 
     // ================================================================ écrans
@@ -300,8 +323,13 @@ public sealed partial class MainViewModel : ObservableObject
             });
             var data = await Task.Run(() => LazerLibrary.Read(lz, lazerProgress));
             int liveSets = data.Sets.Count(x => !x.DeletePending && !x.Protected);
-            int scoreCount = data.Scores.Count;
-            LazerStep.Finish(() => scoreCount > 0 ? $"{Loc.P("PMaps", liveSets)}, {Loc.P("PScores", scoreCount)}" : Loc.P("PMaps", liveSets));
+            int scoreCount = data.Scores.Count, skinCount = data.Skins.Count;
+            LazerStep.Finish(() => string.Join(", ", new[]
+            {
+                Loc.P("PMaps", liveSets),
+                scoreCount > 0 ? Loc.P("PScores", scoreCount) : null,
+                skinCount > 0 ? Loc.P("PSkins", skinCount) : null,
+            }.Where(x => x != null)));
             SetAnalysisProgress(LazerWeight);
 
             // 2. Songs : inventaire des .osu, puis lecture de chacun.
@@ -336,11 +364,16 @@ public sealed partial class MainViewModel : ObservableObject
             var scoresProgress = new Progress<double>(f => Compare(0.5 + f * 0.5));
             var built = await Task.Run(() => Planner.Build(data.Sets, index, lz, mapsProgress));
             var scores = await Task.Run(() => ScorePlanner.Build(data.Scores, data.Sets, lz, st, index, built, scoresProgress));
+            var skins = await Task.Run(() => SkinPlanner.Build(data.Skins, lz, st));
             int missing = built.Count(Decision.Copy);
             int missingScores = scores.Items.Count(i => i.Decision == ScoreDecision.Copy && (i.IsMine || IncludeOthers));
-            CompareStep.Finish(() => missingScores > 0
-                ? $"{Loc.P("PMissingMaps", missing)}, {Loc.P("PMissingScores", missingScores)}"
-                : Loc.P("PMissingMaps", missing));
+            int missingSkins = skins.Items.Count(i => i.Decision == ScoreDecision.Copy);
+            CompareStep.Finish(() => string.Join(", ", new[]
+            {
+                Loc.P("PMissingMaps", missing),
+                missingScores > 0 ? Loc.P("PMissingScores", missingScores) : null,
+                missingSkins > 0 ? Loc.P("PMissingSkins", missingSkins) : null,
+            }.Where(x => x != null)));
             SetAnalysisProgress(1);
 
             stableIndex = index;
@@ -362,13 +395,20 @@ public sealed partial class MainViewModel : ObservableObject
             ToCopyBytes = allItems.Where(i => i.IsCopyCandidate).Sum(i => i.Item.Bytes);
 
             BuildScoreItems(scores);
+            BuildSkinItems(skins);
+            LastCopy = CopyJournal.Load();
 
             RefreshCollectionsPreview();
             SelectedTab = ToCopyCount > 0 || PresentCount == 0 ? ListTab.ToCopy : ListTab.Present;
             SelectedScoreTab = ScoreToCopyCount > 0 || ScorePresentCount == 0 ? ListTab.ToCopy : ListTab.Present;
-            CurrentSection = ToCopyCount == 0 && ScoreToCopyCount > 0 ? Section.Scores : Section.Maps;
+            SelectedSkinTab = SkinToCopyCount > 0 || SkinPresentCount == 0 ? ListTab.ToCopy : ListTab.Present;
+            CurrentSection = ToCopyCount > 0 ? Section.Maps
+                : ScoreToCopyCount > 0 ? Section.Scores
+                : SkinToCopyCount > 0 ? Section.Skins
+                : Section.Maps;
             ApplyFilter();
             ApplyScoreFilter();
+            ApplySkinFilter();
             RefreshSelection();
 
             // Laisse l'anneau se remplir avant de passer à la liste.
@@ -416,6 +456,23 @@ public sealed partial class MainViewModel : ObservableObject
         RefreshScoreTexts();
     }
 
+    private void BuildSkinItems(SkinPlan skins)
+    {
+        skinPlan = skins;
+        allSkins = skins.Items.Select(i => new SkinItemViewModel(i)).ToList();
+        foreach (var k in allSkins)
+            k.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SkinItemViewModel.IsSelected)) RefreshSelection();
+            };
+
+        SkinsAvailable = skins.Unavailable == null;
+        SkinsUnavailableText = skins.Unavailable ?? "";
+        SkinToCopyCount = allSkins.Count(k => k.IsCopyCandidate);
+        SkinPresentCount = allSkins.Count(k => k.IsPresent);
+        SkinIgnoredCount = allSkins.Count(k => k.IsIgnored);
+    }
+
     private void RecountScores()
     {
         ScoreToCopyCount = allScores.Count(s => s.IsCopyCandidate);
@@ -453,17 +510,29 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline))]
     private long toCopyBytes;
 
-    public bool NothingToCopy => ToCopyCount == 0 && ScoreToCopyCount == 0;
+    public bool NothingToCopy => ToCopyCount == 0 && ScoreToCopyCount == 0 && SkinToCopyCount == 0;
+
+    /// <summary>Les nombres non nuls, au pluriel demandé : « 12 maps », « 289 scores », « 3 skins ».</summary>
+    private static List<string> Counted(string mapsKey, int maps, string scoresKey, int scores, string skinsKey, int skins)
+    {
+        var parts = new List<string>();
+        if (maps > 0) parts.Add(Loc.P(mapsKey, maps));
+        if (scores > 0) parts.Add(Loc.P(scoresKey, scores));
+        if (skins > 0) parts.Add(Loc.P(skinsKey, skins));
+        return parts;
+    }
 
     public string Headline
     {
         get
         {
-            int m = ToCopyCount, s = ScoreToCopyCount;
-            if (m > 0 && s > 0) return Loc.F("HeadlineBoth", Loc.P("PGenMaps", m), Loc.P("PGenScores", s));
+            int m = ToCopyCount, s = ScoreToCopyCount, k = SkinToCopyCount;
+            var parts = Counted("PGenMaps", m, "PGenScores", s, "PGenSkins", k);
+            if (parts.Count > 1) return Loc.F("HeadlineBoth", Loc.JoinAnd(parts));
             if (m > 0) return Loc.P("PHeadlineMissing", m);
             if (s > 0) return Loc.P("PHeadlineScores", s);
-            return Loc.T(allScores.Count > 0 ? "HeadlineNoneAll" : "HeadlineNone");
+            if (k > 0) return Loc.P("PHeadlineSkins", k);
+            return Loc.T(allScores.Count > 0 || allSkins.Count > 0 ? "HeadlineNoneAll" : "HeadlineNone");
         }
     }
 
@@ -471,6 +540,16 @@ public sealed partial class MainViewModel : ObservableObject
     {
         get
         {
+            if (IsSkinsSection)
+            {
+                if (!SkinsAvailable) return SkinsUnavailableText;
+                string kp = Loc.P("PSubSkinsPresent", SkinPresentCount);
+                string ki = SkinIgnoredCount == 0 ? "" : Loc.P("PSubSkinsIgnored", SkinIgnoredCount);
+                return SkinToCopyCount == 0
+                    ? $"{kp}{ki}. {Loc.T("SubNothing")}"
+                    : $"{Loc.T("SubSkinsToCopy")} {kp}{ki}.";
+            }
+
             if (IsScoresSection)
             {
                 if (!ScoresAvailable) return ScoresUnavailableText;
@@ -501,7 +580,7 @@ public sealed partial class MainViewModel : ObservableObject
     // ============================================================= sections
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsMapsSection), nameof(IsScoresSection), nameof(SubHeadline))]
+    [NotifyPropertyChangedFor(nameof(IsMapsSection), nameof(IsScoresSection), nameof(IsSkinsSection), nameof(SubHeadline))]
     private Section currentSection;
 
     public bool IsMapsSection
@@ -516,7 +595,18 @@ public sealed partial class MainViewModel : ObservableObject
         set { if (value) CurrentSection = Section.Scores; }
     }
 
-    private int CurrentSectionToCopy => IsScoresSection ? ScoreToCopyCount : ToCopyCount;
+    public bool IsSkinsSection
+    {
+        get => CurrentSection == Section.Skins;
+        set { if (value) CurrentSection = Section.Skins; }
+    }
+
+    private int CurrentSectionToCopy => CurrentSection switch
+    {
+        Section.Scores => ScoreToCopyCount,
+        Section.Skins => SkinToCopyCount,
+        _ => ToCopyCount,
+    };
 
     partial void OnCurrentSectionChanged(Section value)
     {
@@ -547,6 +637,22 @@ public sealed partial class MainViewModel : ObservableObject
         settings.Save();
         RefreshSelection();
     }
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ShowSkinsOff))]
+    private bool includeSkins;
+
+    partial void OnIncludeSkinsChanged(bool value)
+    {
+        settings.CopySkins = value;
+        settings.Save();
+        RefreshSelection();
+    }
+
+    public bool ShowSkinsOff => SkinsAvailable && !IncludeSkins;
+
+    public string SkinsSectionDetail => !SkinsAvailable ? Loc.T("SectionUnavailable")
+        : SkinToCopyCount > 0 ? Loc.P("PSectionToCopy", SkinToCopyCount)
+        : Loc.T("SectionNone");
 
     public string MapsSectionDetail => ToCopyCount > 0 ? Loc.P("PSectionToCopy", ToCopyCount) : Loc.T("SectionNone");
 
@@ -850,6 +956,125 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in VisibleScores.Where(i => i.IsCopyCandidate)) i.IsSelected = false;
     }
 
+    // ============================================================ liste des skins
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SkinsSectionDetail), nameof(SubHeadline), nameof(ShowSkinsOff))]
+    private bool skinsAvailable = true;
+
+    [ObservableProperty] private string skinsUnavailableText = "";
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Headline), nameof(SubHeadline), nameof(NothingToCopy), nameof(SkinToCopyCountText),
+        nameof(ExportButtonText), nameof(SelectionText), nameof(SkinsSectionDetail))]
+    private int skinToCopyCount;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline), nameof(SkinPresentCountText))]
+    private int skinPresentCount;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(SubHeadline), nameof(SkinIgnoredCountText))]
+    private int skinIgnoredCount;
+
+    public string SkinToCopyCountText => Fmt.N(SkinToCopyCount);
+    public string SkinPresentCountText => Fmt.N(SkinPresentCount);
+    public string SkinIgnoredCountText => Fmt.N(SkinIgnoredCount);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSkinToCopyTab), nameof(IsSkinPresentTab), nameof(IsSkinIgnoredTab), nameof(SkinEmptyText))]
+    private ListTab selectedSkinTab;
+
+    public bool IsSkinToCopyTab
+    {
+        get => SelectedSkinTab == ListTab.ToCopy;
+        set { if (value) SelectedSkinTab = ListTab.ToCopy; }
+    }
+
+    public bool IsSkinPresentTab
+    {
+        get => SelectedSkinTab == ListTab.Present;
+        set { if (value) SelectedSkinTab = ListTab.Present; }
+    }
+
+    public bool IsSkinIgnoredTab
+    {
+        get => SelectedSkinTab == ListTab.Ignored;
+        set { if (value) SelectedSkinTab = ListTab.Ignored; }
+    }
+
+    partial void OnSelectedSkinTabChanged(ListTab value) => ApplySkinFilter();
+
+    [ObservableProperty] private string skinSearchText = "";
+
+    partial void OnSkinSearchTextChanged(string value)
+    {
+        skinSearchDebounce?.Cancel();
+        var cts = skinSearchDebounce = new CancellationTokenSource();
+        _ = Task.Delay(160, cts.Token).ContinueWith(t =>
+        {
+            if (!t.IsCanceled) Dispatcher.UIThread.Post(ApplySkinFilter);
+        }, TaskScheduler.Default);
+    }
+
+    [ObservableProperty] private IReadOnlyList<SkinSortOption> skinSortOptions;
+
+    private static List<SkinSortOption> BuildSkinSortOptions() =>
+    [
+        new("SortSkinName", s => s.OrderBy(i => i.Title, StringComparer.OrdinalIgnoreCase)),
+        new("SortSkinSize", s => s.OrderByDescending(i => i.Item.Bytes)),
+        new("SortSkinFiles", s => s.OrderByDescending(i => i.FileCount)),
+    ];
+
+    [ObservableProperty] private SkinSortOption skinSort;
+
+    partial void OnSkinSortChanged(SkinSortOption value) => ApplySkinFilter();
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(IsSkinListEmpty))]
+    private IReadOnlyList<SkinItemViewModel> visibleSkins = [];
+
+    public bool IsSkinListEmpty => VisibleSkins.Count == 0;
+
+    public string SkinEmptyText => allSkins.Count == 0 ? Loc.T("EmptySkinsNone")
+        : SkinSearchText.Length > 0 ? Loc.T("EmptySkinsSearch")
+        : SelectedSkinTab switch
+        {
+            ListTab.ToCopy => Loc.T("EmptySkinsToCopy"),
+            ListTab.Present => Loc.T("EmptySkinsPresent"),
+            _ => Loc.T("EmptySkinsIgnored"),
+        };
+
+    private void ApplySkinFilter()
+    {
+        if (SkinSort == null) return;
+
+        IEnumerable<SkinItemViewModel> q = SelectedSkinTab switch
+        {
+            ListTab.ToCopy => allSkins.Where(i => i.IsCopyCandidate),
+            ListTab.Present => allSkins.Where(i => i.IsPresent),
+            _ => allSkins.Where(i => i.IsIgnored),
+        };
+
+        string search = SkinSearchText.Trim().ToLowerInvariant();
+        if (search.Length > 0)
+        {
+            string[] words = search.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            q = q.Where(i => words.All(w => i.SearchText.Contains(w, StringComparison.Ordinal)));
+        }
+
+        VisibleSkins = SkinSort.Apply(q).ToList();
+        OnPropertyChanged(nameof(SkinEmptyText));
+    }
+
+    [RelayCommand]
+    private void SelectAllSkins()
+    {
+        foreach (var i in VisibleSkins.Where(i => i.IsCopyCandidate)) i.IsSelected = true;
+    }
+
+    [RelayCommand]
+    private void SelectNoSkins()
+    {
+        foreach (var i in VisibleSkins.Where(i => i.IsCopyCandidate)) i.IsSelected = false;
+    }
+
     // ============================================================= sélection
 
     /// <summary>Maps cochées qui seront copiées (0 si les beatmaps sont décochées).</summary>
@@ -865,6 +1090,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Scores cochés qui seront copiés (leur map est dans stable ou copiée en même temps).</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(ExportButtonText), nameof(CanExport), nameof(SelectionText))]
     private int selectedScoreCount;
+
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(ExportButtonText), nameof(CanExport), nameof(SelectionText))]
+    private int selectedSkinCount;
 
     /// <summary>Scores cochés dont la map n'est ni dans stable ni cochée.</summary>
     [ObservableProperty] [NotifyPropertyChangedFor(nameof(SelectionText))]
@@ -891,6 +1119,7 @@ public sealed partial class MainViewModel : ObservableObject
             bool scoresOn = IncludeScores && ScoresAvailable;
             SelectedScoreCount = scoresOn ? allScores.Count(s => s.IsCopyCandidate && s.IsSelected && s.IsReady) : 0;
             WaitingScoreCount = scoresOn ? allScores.Count(s => s.IsCopyCandidate && s.IsSelected && !s.IsReady) : 0;
+            SelectedSkinCount = IncludeSkins && SkinsAvailable ? allSkins.Count(k => k.IsCopyCandidate && k.IsSelected) : 0;
 
             if (stable != null) FreeSpace = Fmt.FreeSpace(stable.SongsDir);
             OnPropertyChanged(nameof(ExportButtonText));
@@ -902,18 +1131,20 @@ public sealed partial class MainViewModel : ObservableObject
     public bool NotEnoughSpace => SelectedCount > 0 && FreeSpace is long f && f < SelectedBytes + 200L * 1024 * 1024;
 
     /// <summary>Les collections seules (aucune map à copier) : possible tant que les beatmaps sont incluses.</summary>
-    private bool CollectionsOnly => SelectedCount == 0 && SelectedScoreCount == 0 && IncludeMaps && WillExportCollections;
+    private bool CollectionsOnly => SelectedCount == 0 && SelectedScoreCount == 0 && SelectedSkinCount == 0 && IncludeMaps && WillExportCollections;
 
-    public bool CanExport => (SelectedCount > 0 || SelectedScoreCount > 0 || CollectionsOnly) && !NotEnoughSpace;
+    public bool CanExport => (SelectedCount > 0 || SelectedScoreCount > 0 || SelectedSkinCount > 0 || CollectionsOnly) && !NotEnoughSpace;
 
     public string ExportButtonText
     {
         get
         {
-            int m = SelectedCount, s = SelectedScoreCount;
-            if (m > 0 && s > 0) return Loc.F("ExportBothButton", Loc.P("PAccMaps", m), Loc.P("PAccScores", s));
+            int m = SelectedCount, s = SelectedScoreCount, k = SelectedSkinCount;
+            var parts = Counted("PAccMaps", m, "PAccScores", s, "PAccSkins", k);
+            if (parts.Count > 1) return Loc.F("ExportBothButton", Loc.JoinAnd(parts));
             if (m > 0) return Loc.P("PExportButton", m);
             if (s > 0) return Loc.P("PExportScoresButton", s);
+            if (k > 0) return Loc.P("PExportSkinsButton", k);
             if (CollectionsOnly) return Loc.T("AddCollectionsButton");
             return NothingToCopy ? Loc.T("NothingToCopy") : Loc.T("NoneChecked");
         }
@@ -928,6 +1159,7 @@ public sealed partial class MainViewModel : ObservableObject
             var parts = new List<string>();
             if (SelectedCount > 0) parts.Add(Loc.F("SelMapsSeg", Loc.P("PSelChecked", SelectedCount), Fmt.Bytes(SelectedBytes)));
             if (SelectedScoreCount > 0) parts.Add(Loc.P("PSelScoresChecked", SelectedScoreCount));
+            if (SelectedSkinCount > 0) parts.Add(Loc.P("PSelSkinsChecked", SelectedSkinCount));
             if (WaitingScoreCount > 0) parts.Add(Loc.P("PSelScoresWaiting", WaitingScoreCount));
             if (parts.Count == 0) return Loc.T(CollectionsOnly ? "SelCollectionsOnly" : "SelCheckAnything");
 
@@ -1112,10 +1344,12 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (stable == null) return;
 
-        int m = SelectedCount, s = SelectedScoreCount;
-        ConfirmTitle = m > 0 && s > 0 ? Loc.F("ConfirmBothTitle", Loc.P("PAccMaps", m), Loc.P("PAccScores", s))
+        int m = SelectedCount, s = SelectedScoreCount, k = SelectedSkinCount;
+        var titleParts = Counted("PAccMaps", m, "PAccScores", s, "PAccSkins", k);
+        ConfirmTitle = titleParts.Count > 1 ? Loc.F("ConfirmBothTitle", Loc.JoinAnd(titleParts))
             : m > 0 ? Loc.P("PConfirmTitle", m)
             : s > 0 ? Loc.P("PConfirmScoresTitle", s)
+            : k > 0 ? Loc.P("PConfirmSkinsTitle", k)
             : Loc.T("ConfirmCollectionsTitle");
 
         var body = new List<string>();
@@ -1133,7 +1367,13 @@ public sealed partial class MainViewModel : ObservableObject
             if (stable.InstallDir != null) destinations.Add(stable.InstallDir);
         }
 
-        if (m == 0 && s == 0 && stable.InstallDir != null) destinations.Add(stable.InstallDir);
+        if (k > 0)
+        {
+            body.Add(Loc.T("ConfirmSkins"));
+            if (skinPlan?.SkinsDir != null) destinations.Add(skinPlan.SkinsDir);
+        }
+
+        if (m == 0 && s == 0 && k == 0 && stable.InstallDir != null) destinations.Add(stable.InstallDir);
 
         ConfirmBody = string.Join("\n", body);
         ConfirmDestination = string.Join("\n", destinations.Distinct());
@@ -1146,6 +1386,18 @@ public sealed partial class MainViewModel : ObservableObject
         if (IsErrorOpen)
         {
             IsErrorOpen = false;
+            return;
+        }
+
+        if (IsInfoOpen)
+        {
+            IsInfoOpen = false;
+            return;
+        }
+
+        if (IsUndoOpen)
+        {
+            if (!IsUndoing) IsUndoOpen = false;
             return;
         }
 
@@ -1176,7 +1428,7 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ================================================================ export
 
-    private enum ExportPhase { Maps, Collections, Scores }
+    private enum ExportPhase { Maps, Collections, Skins, Scores }
 
     [ObservableProperty] private string exportHeadline = "";
     [ObservableProperty] private string exportDetail = "";
@@ -1189,6 +1441,7 @@ public sealed partial class MainViewModel : ObservableObject
     private ExportPhase exportPhase = ExportPhase.Maps;
     private ExportProgress? lastProgress;
     private ScoreExportProgress? lastScoreProgress;
+    private (int Done, int Total)? lastSkinProgress;
     private TimeSpan? lastEta;
 
     private void RefreshExportTexts()
@@ -1198,6 +1451,11 @@ public sealed partial class MainViewModel : ObservableObject
             case ExportPhase.Collections:
                 ExportHeadline = Loc.T("ExportCollectionsHeadline");
                 ExportDetail = "";
+                return;
+
+            case ExportPhase.Skins:
+                ExportHeadline = Loc.T("ExportSkinsHeadline");
+                ExportDetail = lastSkinProgress is { } kp ? Loc.F("ExportScoresDetail", Fmt.N(kp.Done), Fmt.N(kp.Total)) : "";
                 return;
 
             case ExportPhase.Scores:
@@ -1232,6 +1490,9 @@ public sealed partial class MainViewModel : ObservableObject
             ? allScores.Where(s => s.IsCopyCandidate && s.IsSelected && s.IsReady).ToList()
             : [];
         var selectedScores = selectedScoreVms.Select(s => s.Item).ToList();
+        var selectedSkins = IncludeSkins && SkinsAvailable
+            ? allSkins.Where(k => k.IsCopyCandidate && k.IsSelected).Select(k => k.Item).ToList()
+            : [];
         bool doCollections = WillCopyCollections;
 
         RecentlyExported.Clear();
@@ -1240,7 +1501,11 @@ public sealed partial class MainViewModel : ObservableObject
         CircleApproach = 0;
         CircleBurst = 0;
         CircleText = "0";
-        exportPhase = total > 0 ? ExportPhase.Maps : selectedScores.Count > 0 ? ExportPhase.Scores : ExportPhase.Collections;
+        exportPhase = total > 0 ? ExportPhase.Maps
+            : selectedSkins.Count > 0 ? ExportPhase.Skins
+            : selectedScores.Count > 0 ? ExportPhase.Scores
+            : ExportPhase.Collections;
+        lastSkinProgress = (0, selectedSkins.Count);
         lastProgress = new ExportProgress(0, total, null, 0, totalBytes);
         lastScoreProgress = new ScoreExportProgress(0, selectedScores.Count, null);
         lastEta = null;
@@ -1321,7 +1586,34 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
 
-        // 3. Les scores : après les maps, pour que ceux des maps tout juste copiées puissent suivre.
+        // 3. Les skins.
+        SkinExportResult? skinResult = null;
+        if (selectedSkins.Count > 0 && skinPlan?.SkinsDir is string skinsDir && !result.Cancelled && !result.DiskFull)
+        {
+            exportPhase = ExportPhase.Skins;
+            CanStop = false;
+            CircleApproach = 0;
+            CircleText = "0";
+            RefreshExportTexts();
+            var skinProgress = new Progress<(int Done, int Total, SkinPlanItem? Current)>(p =>
+            {
+                lastSkinProgress = (p.Done, p.Total);
+                CircleText = Fmt.N(p.Done);
+                CircleApproach = p.Total == 0 ? 1 : (double)p.Done / p.Total;
+                RefreshExportTexts();
+            });
+            try
+            {
+                skinResult = await Task.Run(() => SkinExporter.Run(selectedSkins, lz, skinsDir, skinProgress));
+            }
+            catch (Exception e)
+            {
+                skinResult = new SkinExportResult();
+                skinResult.Failed.Add((selectedSkins[0], e.Message));
+            }
+        }
+
+        // 4. Les scores : après les maps, pour que ceux des maps tout juste copiées puissent suivre.
         ScoreExportResult? scoreResult = null;
         string? scoreError = null;
         if (selectedScores.Count > 0)
@@ -1370,14 +1662,31 @@ public sealed partial class MainViewModel : ObservableObject
 
         try
         {
-            ReportPath = Report.Write(lz, st, plan, selected, result, coll, collError, scorePlan, scoreResult, scoreError);
+            ReportPath = Report.Write(lz, st, plan, selected, result, coll, collError, scorePlan, scoreResult, scoreError, skinPlan, skinResult);
         }
         catch
         {
             ReportPath = null;
         }
 
-        ShowDone(new DoneState(result, coll, collError, total, scoreResult, scoreError, selectedScores.Count, sw.Elapsed));
+        // Ce qui a été ajouté, pour pouvoir l'annuler.
+        var journal = new CopyJournal
+        {
+            SongsDir = st.SongsDir,
+            InstallDir = st.InstallDir,
+            Maps = result.Exported.Select(e => e.Destination).ToList(),
+            Skins = skinResult?.Exported.Select(e => e.Destination).ToList() ?? [],
+            Scores = scoreResult?.Journal.ToList() ?? [],
+            AddedCollections = coll?.AddedNames ?? [],
+            AddedToCollections = coll?.AddedHashes ?? [],
+        };
+        if (!journal.IsEmpty)
+        {
+            journal.Save();
+            LastCopy = journal;
+        }
+
+        ShowDone(new DoneState(result, coll, collError, total, scoreResult, scoreError, selectedScores.Count, skinResult, selectedSkins.Count, sw.Elapsed));
     }
 
     [RelayCommand]
@@ -1393,6 +1702,7 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private string doneDetail = "";
     [ObservableProperty] private string doneCollections = "";
     [ObservableProperty] private string doneScores = "";
+    [ObservableProperty] private string doneSkins = "";
     [ObservableProperty] private string? reportPath;
     [ObservableProperty] private bool hasFailures;
     [ObservableProperty] private string nextStepText = "";
@@ -1407,6 +1717,8 @@ public sealed partial class MainViewModel : ObservableObject
         ScoreExportResult? Scores,
         string? ScoresError,
         int TotalScores,
+        SkinExportResult? Skins,
+        int TotalSkins,
         TimeSpan Elapsed);
 
     private DoneState? lastDone;
@@ -1416,7 +1728,7 @@ public sealed partial class MainViewModel : ObservableObject
         lastDone = done;
         BuildDoneTexts();
 
-        CircleText = Fmt.N(done.Result.Exported.Count + (done.Scores?.Added.Count ?? 0));
+        CircleText = Fmt.N(done.Result.Exported.Count + (done.Scores?.Added.Count ?? 0) + (done.Skins?.Exported.Count ?? 0));
         CurrentExport = null;
         OnPropertyChanged(nameof(CanLaunchStable));
         CurrentScreen = Screen.Done;
@@ -1430,11 +1742,14 @@ public sealed partial class MainViewModel : ObservableObject
         var result = d.Result;
         int n = result.Exported.Count;
         int s = d.Scores?.Added.Count ?? 0;
+        int k = d.Skins?.Exported.Count ?? 0;
 
-        DoneHeadline = n > 0 && s > 0 ? Loc.F("DoneBoth", Loc.P("PNomMaps", n), Loc.P("PNomScores", s))
+        var parts0 = Counted("PNomMaps", n, "PNomScores", s, "PNomSkins", k);
+        DoneHeadline = parts0.Count > 1 ? Loc.F("DoneBoth", Loc.JoinAnd(parts0))
             : n > 0 ? Loc.P("PDoneHeadline", n)
             : s > 0 ? Loc.P("PDoneScoresHeadline", s)
-            : Loc.T(d.Total > 0 && d.TotalScores == 0 ? "DoneNone" : "DoneNothing");
+            : k > 0 ? Loc.P("PDoneSkinsHeadline", k)
+            : Loc.T(d.Total > 0 && d.TotalScores == 0 && d.TotalSkins == 0 ? "DoneNone" : "DoneNothing");
 
         var parts = new List<string>();
         if (d.Total > 0)
@@ -1466,18 +1781,26 @@ public sealed partial class MainViewModel : ObservableObject
             DoneScores = error != null ? Loc.F("DoneScoresFailed", error) : "";
         }
 
+        DoneSkins = d.Skins == null ? ""
+            : Loc.P("PDoneSkins", d.Skins.Exported.Count) + (d.Skins.Failed.Count > 0 ? Loc.P("PDoneSkinsFailed", d.Skins.Failed.Count) : "");
+
         DoneProblems.Clear();
         foreach (var (item, error) in result.Failed) DoneProblems.Add(Loc.F("Line", item.Set.DisplayName, error));
         foreach (var w in result.Warnings) DoneProblems.Add(w.ToString());
         if (d.Scores is { Error: null })
             foreach (var (item, error) in d.Scores.Failed)
                 DoneProblems.Add(Loc.F("Line", item.DisplayName, error));
+        if (d.Skins != null)
+            foreach (var (item, error) in d.Skins.Failed)
+                DoneProblems.Add(Loc.F("Line", item.Skin.DisplayName, error));
         HasFailures = DoneProblems.Count > 0;
 
-        string maps = Loc.T(ExportAsOsz ? "NextOsz" : "NextFolders");
-        NextStepText = n > 0 && s > 0 ? $"{maps} {Loc.T("NextScores")}"
-            : s > 0 ? Loc.T("NextScoresOnly")
-            : maps;
+        var next = new List<string>();
+        if (n > 0 || (s == 0 && k == 0)) next.Add(Loc.T(ExportAsOsz ? "NextOsz" : "NextFolders"));
+        else next.Add(Loc.T("NextLaunch"));
+        if (s > 0) next.Add(Loc.T("NextScores"));
+        if (k > 0) next.Add(Loc.T("NextSkins"));
+        NextStepText = string.Join(" ", next);
     }
 
     [RelayCommand]
@@ -1529,6 +1852,88 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    // ============================================================ annulation
+
+    /// <summary>La dernière copie, qu'on peut annuler (null s'il n'y en a pas).</summary>
+    [ObservableProperty] [NotifyPropertyChangedFor(nameof(HasLastCopy), nameof(UndoLinkText))]
+    private CopyJournal? lastCopy;
+
+    public bool HasLastCopy => LastCopy != null;
+
+    public string UndoLinkText => LastCopy == null ? ""
+        : Loc.F("UndoLink", LastCopy.Date.ToString(Loc.T("UndoDate"), System.Globalization.CultureInfo.InvariantCulture));
+
+    [ObservableProperty] private bool isUndoOpen;
+    [ObservableProperty] private string undoBody = "";
+    [ObservableProperty] private bool isUndoing;
+
+    [ObservableProperty] private bool isInfoOpen;
+    [ObservableProperty] private string infoTitle = "";
+    [ObservableProperty] private string infoText = "";
+
+    [RelayCommand]
+    private void AskUndo()
+    {
+        if (LastCopy == null) return;
+        CheckOsuRunning();
+        BuildUndoTexts();
+        IsUndoOpen = true;
+    }
+
+    private void BuildUndoTexts()
+    {
+        if (LastCopy is not { } j) return;
+        var parts = Counted("PNomMaps", j.Maps.Count, "PNomScores", j.Scores.Count, "PNomSkins", j.Skins.Count);
+        if (j.HasCollections) parts.Add(Loc.T("UndoCollections"));
+        UndoBody = Loc.F("UndoBody", Loc.JoinAnd(parts));
+    }
+
+    [RelayCommand]
+    private void CancelUndo() => IsUndoOpen = false;
+
+    [RelayCommand]
+    private async Task CloseOsuThenUndoAsync()
+    {
+        if (await CloseOsuCoreAsync())
+            await ConfirmUndoAsync();
+    }
+
+    [RelayCommand]
+    private async Task ConfirmUndoAsync()
+    {
+        if (LastCopy is not { } journal) return;
+        CheckOsuRunning();
+        if (StableRunning) return; // le dialogue propose de fermer stable d'abord
+
+        IsUndoing = true;
+        UndoResult result;
+        try
+        {
+            result = await Task.Run(() => CopyUndo.Run(journal));
+        }
+        finally
+        {
+            IsUndoing = false;
+            IsUndoOpen = false;
+        }
+
+        var parts = Counted("PNomMaps", result.Maps, "PNomScores", result.Scores, "PNomSkins", result.Skins);
+        if (result.Collections > 0) parts.Add(Loc.P("PCollections", result.Collections));
+        if (result.CollectionMaps > 0) parts.Add(Loc.P("PCollectionMaps", result.CollectionMaps));
+
+        InfoTitle = Loc.T("UndoDoneTitle");
+        InfoText = parts.Count == 0 ? Loc.T("UndoNothing") : Loc.F("UndoDoneBody", Loc.JoinAnd(parts));
+        if (result.Errors.Count > 0) InfoText += "\n\n" + Loc.T("UndoErrors") + "\n" + string.Join("\n", result.Errors.Take(8));
+        LastCopy = CopyJournal.Load();
+        IsInfoOpen = true;
+
+        osuWatch.Start();
+        await AnalyzeAsync();
+    }
+
+    [RelayCommand]
+    private void DismissInfo() => IsInfoOpen = false;
+
     // ===================================================== captures de test
     // Remplissent l'état sans passer par l'interface (tests/Screens).
 
@@ -1546,7 +1951,7 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(8)) RecentlyExported.Add(i);
     }
 
-    internal void TestShowDone(int n, int scores = 0)
+    internal void TestShowDone(int n, int scores = 0, int skins = 0)
     {
         var r = new ExportResult { BytesCopied = 3_456_789_012 };
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(n)) r.Exported.Add((i.Item, "x"));
@@ -1559,8 +1964,15 @@ public sealed partial class MainViewModel : ObservableObject
             foreach (var s in allScores.Where(s => s.IsCopyCandidate).Take(scores)) sr.Added.Add(s.Item);
         }
 
+        SkinExportResult? kr = null;
+        if (skins > 0)
+        {
+            kr = new SkinExportResult();
+            foreach (var k in allSkins.Where(k => k.IsCopyCandidate).Take(skins)) kr.Exported.Add((k.Item, "x"));
+        }
+
         ShowDone(new DoneState(r, new CollectionsExportResult(3, 2, 140, "collection.db.avant-exotique-20261029-010203", "collection.db"),
-            null, n, sr, null, scores, TimeSpan.FromSeconds(162)));
+            null, n, sr, null, scores, kr, skins, TimeSpan.FromSeconds(162)));
     }
 
     internal void TestOpenConfirm() => AskExport();
@@ -1609,6 +2021,12 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     internal IReadOnlyList<ScoreItemViewModel> TestScores => allScores;
+
+    internal IReadOnlyList<SkinItemViewModel> TestSkins => allSkins;
+
+    internal void TestOpenUndo() => AskUndo();
+
+    internal void TestSetLastCopy(CopyJournal? journal) => LastCopy = journal;
 }
 
 public enum StepState { Pending, Running, Done }

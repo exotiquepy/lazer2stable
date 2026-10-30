@@ -4,7 +4,12 @@ namespace Exotique.Core;
 
 public sealed record StableCollection(string Name, List<string> Md5s);
 
-public sealed record CollectionsExportResult(int Added, int Updated, int HashesAdded, string? BackupPath, string DbPath);
+public sealed record CollectionsExportResult(int Added, int Updated, int HashesAdded, string? BackupPath, string DbPath)
+{
+    /// <summary>Collections créées, et maps ajoutées aux collections existantes : de quoi annuler exactement la copie.</summary>
+    public List<string> AddedNames { get; init; } = [];
+    public Dictionary<string, List<string>> AddedHashes { get; init; } = [];
+}
 
 /// <summary>
 /// Lecture / écriture du collection.db de stable :
@@ -60,8 +65,8 @@ public static class StableCollections
     public static (int Added, int Updated, int HashesAdded) Preview(string? dbPath, IReadOnlyList<LazerCollection> lazer)
     {
         var existing = dbPath != null && File.Exists(dbPath) ? Read(dbPath).Collections : [];
-        var (_, added, updated, hashes) = Merge(existing, lazer);
-        return (added, updated, hashes);
+        var m = Merge(existing, lazer);
+        return (m.Added, m.Updated, m.HashesAdded);
     }
 
     /// <summary>
@@ -81,25 +86,64 @@ public static class StableCollections
             File.Copy(dbPath, backup);
         }
 
-        var (merged, added, updated, hashesAdded) = Merge(existing, lazer);
+        var m = Merge(existing, lazer);
+        ReplaceVerified(dbPath, version, m.Merged);
+        return new CollectionsExportResult(m.Added, m.Updated, m.HashesAdded, backup, dbPath)
+        {
+            AddedNames = m.AddedNames,
+            AddedHashes = m.AddedHashes,
+        };
+    }
 
+    /// <summary>
+    /// Retire ce qu'une copie a ajouté : les collections créées et les maps ajoutées aux autres.
+    /// Ce que l'utilisateur a changé dans stable depuis est gardé. L'ancien fichier est sauvegardé avant.
+    /// </summary>
+    /// <returns>Nombre de collections et de maps retirées.</returns>
+    public static (int Collections, int Hashes) Undo(string dbPath, IReadOnlyCollection<string> addedNames, IReadOnlyDictionary<string, List<string>> addedHashes)
+    {
+        if (!File.Exists(dbPath)) return (0, 0);
+        var (version, existing) = Read(dbPath);
+
+        var names = new HashSet<string>(addedNames, StringComparer.Ordinal);
+        int removedCollections = existing.RemoveAll(c => names.Contains(c.Name));
+        int removedHashes = 0;
+        foreach (var c in existing)
+        {
+            if (!addedHashes.TryGetValue(c.Name, out var hashes)) continue;
+            var drop = new HashSet<string>(hashes, StringComparer.OrdinalIgnoreCase);
+            removedHashes += c.Md5s.RemoveAll(drop.Contains);
+        }
+
+        if (removedCollections + removedHashes == 0) return (0, 0);
+
+        File.Copy(dbPath, Path.Combine(Path.GetDirectoryName(dbPath)!, $"collection.db.avant-annulation-{DateTime.Now:yyyyMMdd-HHmmss}"));
+        ReplaceVerified(dbPath, version, existing);
+        return (removedCollections, removedHashes);
+    }
+
+    private static void ReplaceVerified(string dbPath, int version, IReadOnlyList<StableCollection> collections)
+    {
         string temp = dbPath + ".tmp";
-        Write(temp, version, merged);
+        Write(temp, version, collections);
 
         // Relecture de contrôle avant de remplacer l'original.
         var (_, check) = Read(temp);
-        if (check.Count != merged.Count)
+        if (check.Count != collections.Count)
             throw new InvalidDataException(Loc.T("ErrCollVerify"));
 
         File.Move(temp, dbPath, overwrite: true);
-        return new CollectionsExportResult(added, updated, hashesAdded, backup, dbPath);
     }
 
-    private static (List<StableCollection> Merged, int Added, int Updated, int HashesAdded) Merge(
-        IReadOnlyList<StableCollection> existing, IReadOnlyList<LazerCollection> lazer)
+    private sealed record MergeResult(List<StableCollection> Merged, int Added, int Updated, int HashesAdded,
+        List<string> AddedNames, Dictionary<string, List<string>> AddedHashes);
+
+    private static MergeResult Merge(IReadOnlyList<StableCollection> existing, IReadOnlyList<LazerCollection> lazer)
     {
         var merged = existing.Select(c => new StableCollection(c.Name, [.. c.Md5s])).ToList();
         int added = 0, updated = 0, hashesAdded = 0;
+        var addedNames = new List<string>();
+        var addedHashes = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
         foreach (var lc in lazer)
         {
@@ -107,6 +151,7 @@ public static class StableCollections
             if (target == null)
             {
                 merged.Add(new StableCollection(lc.Name, [.. lc.Md5s]));
+                addedNames.Add(lc.Name);
                 added++;
                 hashesAdded += lc.Md5s.Count;
                 continue;
@@ -115,8 +160,12 @@ public static class StableCollections
             var known = new HashSet<string>(target.Md5s, StringComparer.OrdinalIgnoreCase);
             int before = target.Md5s.Count;
             foreach (string h in lc.Md5s)
-                if (known.Add(h))
-                    target.Md5s.Add(h);
+            {
+                if (!known.Add(h)) continue;
+                target.Md5s.Add(h);
+                if (!addedHashes.TryGetValue(target.Name, out var list)) addedHashes[target.Name] = list = [];
+                list.Add(h);
+            }
 
             if (target.Md5s.Count > before)
             {
@@ -125,7 +174,7 @@ public static class StableCollections
             }
         }
 
-        return (merged, added, updated, hashesAdded);
+        return new MergeResult(merged, added, updated, hashesAdded, addedNames, addedHashes);
     }
 
     private static string? ReadString(BinaryReader r)

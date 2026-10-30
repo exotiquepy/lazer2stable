@@ -10,6 +10,9 @@ public sealed class ScoreExportResult
 
     public string? BackupPath { get; set; }
 
+    /// <summary>De quoi retirer ces scores plus tard (annulation de la copie).</summary>
+    public List<JournalScore> Journal { get; } = [];
+
     /// <summary>Échec de l'écriture de scores.db : aucun score n'a été ajouté.</summary>
     public string? Error { get; set; }
 }
@@ -91,6 +94,7 @@ public static class ScoreExporter
                 File.WriteAllBytes(temp, bytes);
                 File.Move(temp, target);
                 written.Add(target);
+                result.Journal.Add(new JournalScore(entry.ReplayMd5, entry.Key, target));
 
                 entry.ReplayData = null;
                 additions.Add(entry);
@@ -138,6 +142,7 @@ public static class ScoreExporter
             result.Error = e.Message;
             foreach (var item in result.Added) result.Failed.Add((item, e.Message));
             result.Added.Clear();
+            result.Journal.Clear();
         }
 
         return result;

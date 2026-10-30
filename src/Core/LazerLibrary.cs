@@ -61,6 +61,7 @@ public sealed class LazerData
     public required List<LazerSet> Sets { get; init; }
     public required List<LazerCollection> Collections { get; init; }
     public List<LazerScore> Scores { get; init; } = [];
+    public List<LazerSkin> Skins { get; init; } = [];
 }
 
 /// <summary>
@@ -187,7 +188,7 @@ public static class LazerLibrary
 
             progress?.Report((1, sets.Count, total));
 
-            return new LazerData { Sets = sets, Collections = ReadCollections(realm), Scores = LazerScoreReader.Read(realm) };
+            return new LazerData { Sets = sets, Collections = ReadCollections(realm), Scores = LazerScoreReader.Read(realm), Skins = LazerSkinReader.Read(realm) };
         }
     }
 

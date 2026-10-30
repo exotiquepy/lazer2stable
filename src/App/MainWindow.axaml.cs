@@ -83,6 +83,9 @@ public partial class MainWindow : Window, IShell
             case ScoreItemViewModel { IsCopyCandidate: true } score:
                 score.IsSelected = !score.IsSelected;
                 return true;
+            case SkinItemViewModel { IsCopyCandidate: true } skin:
+                skin.IsSelected = !skin.IsSelected;
+                return true;
             default:
                 return false;
         }

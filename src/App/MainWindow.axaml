@@ -75,6 +75,7 @@
         <TextBlock Classes="lead" Text="{Binding DoneDetail}" IsVisible="{Binding DoneDetail, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <TextBlock Classes="lead" Text="{Binding DoneCollections}" IsVisible="{Binding DoneCollections, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <TextBlock Classes="lead" Text="{Binding DoneScores}" IsVisible="{Binding DoneScores, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Classes="lead" Text="{Binding DoneSkins}" IsVisible="{Binding DoneSkins, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
       </StackPanel>
 
       <!-- Trajet lazer → stable -->
@@ -178,7 +179,8 @@
     <Grid Grid.Row="2" RowDefinitions="Auto,*" ColumnDefinitions="262,*" Margin="20,0,28,0" IsVisible="{Binding IsReview}">
 
       <!-- Beatmaps / Scores : l'onglet choisit ce qu'on regarde, la case ce qu'on copie. -->
-      <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14">
+      <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" Margin="0,0,0,14">
+      <StackPanel Orientation="Horizontal" Spacing="10">
         <RadioButton Classes="section" GroupName="section" IsChecked="{Binding IsMapsSection}">
           <Grid ColumnDefinitions="Auto,*">
             <CheckBox IsChecked="{Binding IncludeMaps}" ToolTip.Tip="{app:Tr SectionMapsTip}" VerticalAlignment="Center"
@@ -199,7 +201,20 @@
             </StackPanel>
           </Grid>
         </RadioButton>
+        <RadioButton Classes="section" GroupName="section" IsChecked="{Binding IsSkinsSection}">
+          <Grid ColumnDefinitions="Auto,*">
+            <CheckBox IsChecked="{Binding IncludeSkins}" IsEnabled="{Binding SkinsAvailable}" ToolTip.Tip="{app:Tr SectionSkinsTip}"
+                      VerticalAlignment="Center" MinWidth="0" Padding="0" Margin="0,0,12,0" />
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Text="{app:Tr SectionSkins}" Classes="display" FontWeight="Bold" FontSize="16" />
+              <TextBlock Text="{Binding SkinsSectionDetail}" Classes="muted" FontSize="12.5" />
+            </StackPanel>
+          </Grid>
+        </RadioButton>
       </StackPanel>
+      <Button Grid.Column="1" Classes="link" Content="{Binding UndoLinkText}" Command="{Binding AskUndoCommand}"
+              IsVisible="{Binding HasLastCopy}" HorizontalAlignment="Right" VerticalAlignment="Center" />
+      </Grid>
 
       <!-- Colonne gauche des beatmaps : onglets, modes, options de copie -->
       <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsMapsSection}">
@@ -276,6 +291,100 @@
           <TextBlock Text="{app:Tr ScoresNote}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" LineHeight="18" Margin="4,0,0,0" />
         </StackPanel>
       </ScrollViewer>
+
+      <!-- Colonne gauche des skins -->
+      <ScrollViewer Grid.Row="1" Grid.Column="0" Margin="0,0,10,0" VerticalScrollBarVisibility="Auto" IsVisible="{Binding IsSkinsSection}">
+        <StackPanel Spacing="2" Margin="0,0,12,12">
+          <RadioButton Classes="tab" GroupName="skintabs" Content="{app:Tr TabToCopy}" Tag="{Binding SkinToCopyCountText}"
+                       BorderBrush="{StaticResource Lazer}" IsChecked="{Binding IsSkinToCopyTab}" />
+          <RadioButton Classes="tab" GroupName="skintabs" Content="{app:Tr TabPresent}" Tag="{Binding SkinPresentCountText}"
+                       BorderBrush="{StaticResource Stable}" IsChecked="{Binding IsSkinPresentTab}" />
+          <RadioButton Classes="tab" GroupName="skintabs" Content="{app:Tr TabIgnored}" Tag="{Binding SkinIgnoredCountText}"
+                       BorderBrush="{StaticResource Warn}" IsChecked="{Binding IsSkinIgnoredTab}" />
+
+          <TextBlock Classes="group" Text="{app:Tr GroupGoodToKnow}" Margin="4,18,0,6" />
+          <TextBlock Text="{app:Tr SkinsNote}" Classes="muted" FontSize="12.5" TextWrapping="Wrap" LineHeight="18" Margin="4,0,0,0" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Liste des skins -->
+      <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsSkinsSection}">
+        <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+          <TextBox Classes="search" Text="{Binding SkinSearchText}" Watermark="{app:Tr SearchSkinsWatermark}" />
+          <ComboBox Grid.Column="1" Width="232" Margin="10,0,0,0" ItemsSource="{Binding SkinSortOptions}"
+                    SelectedItem="{Binding SkinSort}" VerticalAlignment="Stretch" ToolTip.Tip="{app:Tr SortTip}" />
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0" IsVisible="{Binding IsSkinToCopyTab}">
+            <Button Classes="ghost" Content="{app:Tr CheckAll}" Command="{Binding SelectAllSkinsCommand}"
+                    ToolTip.Tip="{app:Tr CheckAllSkinsTip}" />
+            <Button Classes="ghost" Content="{app:Tr UncheckAll}" Command="{Binding SelectNoSkinsCommand}"
+                    ToolTip.Tip="{app:Tr UncheckAllSkinsTip}" />
+          </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Row="1">
+          <Border Classes="notice" IsVisible="{Binding ShowSkinsOff}">
+            <TextBlock Text="{app:Tr SectionSkinsOff}" />
+          </Border>
+          <Border Classes="notice" IsVisible="{Binding !SkinsAvailable}">
+            <TextBlock Text="{Binding SkinsUnavailableText}" />
+          </Border>
+        </StackPanel>
+
+        <Border Grid.Row="2" Background="{StaticResource Surface}" CornerRadius="14" ClipToBounds="True">
+          <Grid>
+            <ListBox x:Name="SkinList" Classes="maps" ItemsSource="{Binding VisibleSkins}" SelectionMode="Single"
+                     KeyDown="OnListKeyDown">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SkinItemViewModel">
+                  <Border Background="Transparent" Padding="10,8,16,8" Tapped="OnRowTapped">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                      <CheckBox Grid.Column="0" IsChecked="{Binding IsSelected}" IsVisible="{Binding IsCopyCandidate}"
+                                VerticalAlignment="Center" Margin="2,0,6,0" MinWidth="0" />
+
+                      <!-- Aperçu : un cercle de la skin avec son chiffre, et son curseur -->
+                      <Border Grid.Column="1" Width="112" Height="63" CornerRadius="8" ClipToBounds="True">
+                        <Border.Background>
+                          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="#2B1F45" Offset="0" />
+                            <GradientStop Color="#1B2438" Offset="1" />
+                          </LinearGradientBrush>
+                        </Border.Background>
+                        <Grid>
+                          <Panel Width="50" Height="50" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="16,0,0,0">
+                            <Image Source="{Binding Circle}" Stretch="Uniform" />
+                            <Image Source="{Binding Overlay}" Stretch="Uniform" />
+                            <Image Source="{Binding Number}" Width="17" Height="22" Stretch="Uniform"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                          </Panel>
+                          <Image Source="{Binding Cursor}" Width="34" Height="34" Stretch="Uniform"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
+                        </Grid>
+                      </Border>
+
+                      <StackPanel Grid.Column="2" Margin="16,0,12,0" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="15" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding SubLine}" Classes="muted" FontSize="13" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding FolderText}" Classes="faint" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   Margin="0,3,0,0" IsVisible="{Binding IsCopyCandidate}" />
+                        <TextBlock Text="{Binding ReasonText}" Foreground="{StaticResource Stable}" FontSize="12"
+                                   Margin="0,3,0,0" IsVisible="{Binding IsPresent}" />
+                        <TextBlock Text="{Binding ReasonText}" Foreground="{StaticResource Warn}" FontSize="12.5"
+                                   TextWrapping="Wrap" Margin="0,4,0,0" IsVisible="{Binding IsIgnored}" />
+                      </StackPanel>
+
+                      <TextBlock Grid.Column="3" Text="{Binding SizeText}" Classes="display" FontWeight="SemiBold" FontSize="13.5"
+                                 VerticalAlignment="Center" TextAlignment="Right" Width="76" IsVisible="{Binding IsCopyCandidate}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+
+            <TextBlock Text="{Binding SkinEmptyText}" Classes="lead" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" MaxWidth="420" IsVisible="{Binding IsSkinListEmpty}" />
+          </Grid>
+        </Border>
+      </Grid>
 
       <!-- Liste des beatmaps -->
       <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,Auto,*" IsVisible="{Binding IsMapsSection}">
@@ -561,6 +670,7 @@
 
       <!-- Bilan : actions -->
       <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" IsVisible="{Binding IsDone}">
+        <Button Classes="ghost" Content="{app:Tr UndoThisCopy}" Command="{Binding AskUndoCommand}" IsVisible="{Binding HasLastCopy}" />
         <Button Classes="ghost" Content="{app:Tr BackToList}" Command="{Binding BackToListCommand}" />
         <Button Classes="ghost" Content="{app:Tr OpenReport}" Command="{Binding OpenReportCommand}" />
         <Button Classes="ghost" Content="{app:Tr OpenSongs}" Command="{Binding OpenSongsCommand}" />
@@ -612,6 +722,50 @@
               </Panel>
             </Button>
           </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ======================================================= annulation -->
+    <Grid Grid.Row="0" Grid.RowSpan="4" Background="{StaticResource Scrim}" IsVisible="{Binding IsUndoOpen}">
+      <Border Background="{StaticResource Surface}" CornerRadius="18" Padding="30,28" Width="560"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{StaticResource Line}" BorderThickness="1">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="h2" Text="{app:Tr UndoTitle}" />
+          <TextBlock Classes="lead" Text="{Binding UndoBody}" />
+          <Border Background="{StaticResource WarnBg}" CornerRadius="10" Padding="14,10" IsVisible="{Binding StableRunning}">
+            <StackPanel Spacing="4">
+              <TextBlock Foreground="{StaticResource Warn}" FontWeight="Bold" Text="{Binding OsuRunningText}" />
+              <TextBlock Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="13" Text="{app:Tr UndoOsuExplain}" />
+              <Button Classes="warn" Content="{app:Tr ForceClose}" Command="{Binding ForceCloseOsuCommand}" HorizontalAlignment="Left"
+                      Margin="0,4,0,0" IsVisible="{Binding OsuCloseFailed}" IsEnabled="{Binding !IsClosingOsu}" />
+            </StackPanel>
+          </Border>
+          <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Classes="ghost" Content="{app:Tr Cancel}" Command="{Binding CancelUndoCommand}" IsEnabled="{Binding !IsUndoing}" />
+            <Button Classes="primary" Content="{app:Tr UndoButton}" Command="{Binding ConfirmUndoCommand}"
+                    IsVisible="{Binding !StableRunning}" IsEnabled="{Binding !IsUndoing}" />
+            <Button Classes="primary" Command="{Binding CloseOsuThenUndoCommand}" IsVisible="{Binding StableRunning}"
+                    IsEnabled="{Binding !IsClosingOsu}">
+              <Panel>
+                <TextBlock Text="{app:Tr CloseThenUndo}" IsVisible="{Binding !IsClosingOsu}" />
+                <TextBlock Text="{app:Tr ClosingOsu}" IsVisible="{Binding IsClosingOsu}" />
+              </Panel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ======================================================== information -->
+    <Grid Grid.Row="0" Grid.RowSpan="4" Background="{StaticResource Scrim}" IsVisible="{Binding IsInfoOpen}">
+      <Border Background="{StaticResource Surface}" CornerRadius="18" Padding="30,28" Width="560"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="{StaticResource Line}" BorderThickness="1">
+        <StackPanel Spacing="14">
+          <TextBlock Classes="h2" Text="{Binding InfoTitle}" />
+          <TextBlock Classes="lead" Text="{Binding InfoText}" />
+          <Button Classes="primary" Content="{app:Tr Continue}" Command="{Binding DismissInfoCommand}" HorizontalAlignment="Right"
+                  Margin="0,10,0,0" />
         </StackPanel>
       </Border>
     </Grid>

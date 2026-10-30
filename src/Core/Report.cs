@@ -12,7 +12,8 @@ public static class Report
     /// <returns>Chemin du rapport écrit.</returns>
     public static string Write(LazerLocation lazer, StableLocation stable, Plan plan, IReadOnlyCollection<PlanItem> selected,
         ExportResult result, CollectionsExportResult? collections, string? collectionsError,
-        ScorePlan? scorePlan = null, ScoreExportResult? scores = null, string? scoresError = null)
+        ScorePlan? scorePlan = null, ScoreExportResult? scores = null, string? scoresError = null,
+        SkinPlan? skinPlan = null, SkinExportResult? skins = null)
     {
         var sb = new StringBuilder();
         string date = DateTime.Now.ToString(Loc.T("RptDate"), CultureInfo.InvariantCulture);
@@ -22,7 +23,7 @@ public static class Report
         sb.AppendLine();
 
         // Seulement des scores : pas de bloc « maps » vide.
-        if (selected.Count > 0 || scores == null)
+        if (selected.Count > 0 || (scores == null && skins == null))
         {
             sb.AppendLine(Loc.F("RptSelected", selected.Count));
             sb.AppendLine(Loc.F("RptCopied", result.Exported.Count, Fmt.Bytes(result.BytesCopied)));
@@ -56,13 +57,19 @@ public static class Report
             sb.AppendLine();
         }
 
+        if (skins != null)
+        {
+            sb.AppendLine(Loc.F("RptSkins", skins.Exported.Count, skins.Failed.Count));
+            sb.AppendLine();
+        }
+
         Section(sb, "RptSecCopied", result.Exported.Select(e => $"{e.Item.Set.DisplayName}  ->  {e.Destination}"));
         Section(sb, "RptSecFailed", result.Failed.Select(f => Loc.F("Line", f.Item.Set.DisplayName, f.Error)));
         Section(sb, "RptSecWarnings", result.Warnings.Select(w => w.ToString()));
 
         var handled = result.Exported.Select(e => e.Item).Concat(result.Failed.Select(f => f.Item)).ToHashSet();
         Section(sb, "RptSecNotCopied", selected.Where(i => !handled.Contains(i)).Select(i => i.Set.DisplayName));
-        if (selected.Count > 0 || scores == null)
+        if (selected.Count > 0 || (scores == null && skins == null))
             Section(sb, "RptSecUnselected", plan.With(Decision.Copy).Where(i => !selected.Contains(i)).Select(i => i.Set.DisplayName));
         Section(sb, "RptSecEdited", Lines(plan, Decision.LazerEdited));
         Section(sb, "RptSecRuleset", Lines(plan, Decision.UnsupportedRuleset));
@@ -74,6 +81,16 @@ public static class Report
             Section(sb, "RptSecScoresFailed", scores.Error == null ? scores.Failed.Select(f => Loc.F("Line", f.Item.DisplayName, f.Error)) : []);
             Section(sb, "RptSecScoresNoMap", scores.MissingMap.Select(i => i.DisplayName));
         }
+
+        if (skins != null)
+        {
+            Section(sb, "RptSecSkinsAdded", skins.Exported.Select(e => $"{e.Item.Skin.DisplayName}  ->  {e.Destination}"));
+            Section(sb, "RptSecSkinsFailed", skins.Failed.Select(f => Loc.F("Line", f.Item.Skin.DisplayName, f.Error)));
+        }
+
+        if (skinPlan != null)
+            Section(sb, "RptSecSkinsIgnored", skinPlan.Items.Where(i => i.Decision == ScoreDecision.Ignored)
+                .Select(i => Loc.F("Line", i.Skin.DisplayName, i.Reason)));
 
         if (scorePlan != null)
             Section(sb, "RptSecScoresIgnored", scorePlan.Items.Where(i => i.Decision == ScoreDecision.Ignored)

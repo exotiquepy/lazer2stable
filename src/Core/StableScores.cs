@@ -16,6 +16,9 @@ public sealed class StableScoresDb
     {
         public string? Md5 { get; } = md5;
         public List<byte[]> Raw { get; } = [];
+
+        /// <summary>Identité de chaque score de <see cref="Raw"/> (MD5 du replay, clé map + date).</summary>
+        public List<(string? ReplayMd5, string Key)> Ids { get; } = [];
     }
 
     private readonly List<Block> blocks = [];
@@ -61,6 +64,7 @@ public sealed class StableScoresDb
                     long start = ms.Position;
                     var s = OsuScore.ReadDbEntry(r);
                     block.Raw.Add(content[(int)start..(int)ms.Position]);
+                    block.Ids.Add((s.ReplayMd5, s.Key));
                     db.Remember(s);
                 }
 
@@ -80,6 +84,30 @@ public sealed class StableScoresDb
         Count++;
         if (!string.IsNullOrEmpty(s.ReplayMd5)) ReplayMd5s.Add(s.ReplayMd5);
         Keys.Add(s.Key);
+    }
+
+    /// <summary>Retire les scores reconnus (MD5 du replay ou map + date) ; renvoie le nombre retiré.</summary>
+    public int Remove(IReadOnlyCollection<string> replayMd5s, IReadOnlyCollection<string> keys)
+    {
+        var md5Set = new HashSet<string>(replayMd5s, StringComparer.OrdinalIgnoreCase);
+        var keySet = new HashSet<string>(keys, StringComparer.Ordinal);
+        int removed = 0;
+
+        foreach (var block in blocks)
+        {
+            for (int i = block.Raw.Count - 1; i >= 0; i--)
+            {
+                var (md5, key) = block.Ids[i];
+                if ((md5 == null || !md5Set.Contains(md5)) && !keySet.Contains(key)) continue;
+                block.Raw.RemoveAt(i);
+                block.Ids.RemoveAt(i);
+                removed++;
+            }
+        }
+
+        blocks.RemoveAll(b => b.Raw.Count == 0);
+        Count -= removed;
+        return removed;
     }
 
     /// <summary>Écrit le fichier avec les scores existants (inchangés) suivis des nouveaux.</summary>

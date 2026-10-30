@@ -79,6 +79,14 @@ public sealed class Loc : INotifyPropertyChanged
         }
     }
 
+    /// <summary>« a, b et c » / « a, b and c » / « a, b и c ».</summary>
+    public static string JoinAnd(IReadOnlyList<string> parts) => parts.Count switch
+    {
+        0 => "",
+        1 => parts[0],
+        _ => $"{string.Join(", ", parts.Take(parts.Count - 1))} {T("And")} {parts[^1]}",
+    };
+
     public static string Code(Lang l) => l switch { Lang.En => "en", Lang.Ru => "ru", _ => "fr" };
 
     public static Lang? Parse(string? code) => code?.Trim().ToLowerInvariant() switch

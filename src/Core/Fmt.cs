@@ -79,6 +79,7 @@ public sealed class Settings
     public bool ExportCollections { get; set; } = true;
     public bool CopyBeatmaps { get; set; } = true;
     public bool CopyScores { get; set; } = true;
+    public bool CopySkins { get; set; } = true;
     public bool ScoresIncludeOthers { get; set; }
 
     /// <summary>« fr », « en » ou « ru » ; vide : langue de Windows.</summary>
