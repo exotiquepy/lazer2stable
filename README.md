@@ -33,7 +33,10 @@
 
 You play on lazer now. You downloaded hundreds of maps there, set scores, collected skins. Then you open osu!stable and none of it is there.
 
-lazer can import *from* stable, but nothing goes the other way except exporting things one by one. **lazer2stable compares both libraries and copies everything stable is missing in one go**: maps, collections, scores with their replays, and skins. It never touches lazer, and you can undo the copy afterwards.
+lazer can import *from* stable, but not the other way round. **lazer2stable compares both libraries and copies everything stable is missing in one go**: maps, collections, scores with their replays, and skins. It never touches lazer, and you can undo the copy afterwards.
+
+> [!TIP]
+> Want to export your whole library as `.osz` or `.mp3` files instead? [BeatmapExporter](https://github.com/kabiiQ/BeatmapExporter) is great for that. If you play on both clients and want stable to stay up to date, with your scores in its leaderboard, you're in the right place.
 
 ## Quick start
 
