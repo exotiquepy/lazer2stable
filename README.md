@@ -22,6 +22,8 @@ Your maps are already in stable and you only want the scores? Untick **Beatmaps*
 
 Windows will probably say "Windows protected your PC" because the exe isn't signed yet: **More info** → **Run anyway**. Each release has the SHA-256 if you want to check the file.
 
+<sub>A few antivirus engines flag it with generic "risky app" heuristics ([3/71 on VirusTotal](https://www.virustotal.com/gui/file/ed8a2e5a91a2a09a57a7f6ee415f6187fe5f03731948a0b2ee1b1fd4c49f48a9) for v2.5). That's common for unsigned .NET single-file apps, and it should go away once the exe is signed. The source is all here if you'd rather build it yourself.</sub>
+
 ## What it copies
 
 - **Maps** go into `Songs` as normal folders, or as `.osz` files that stable imports at launch if you prefer. A map counts as already there if stable has the same set ID, the same difficulty ID or the exact same `.osu`.
