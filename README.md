@@ -84,6 +84,17 @@ lazer2stable копирует в osu!stable то, что есть в lazer, но
 
 [Скачай exe](https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe), запусти, сними отметки с ненужного, нажми **Скопировать**, потом **F5** в выборе песен stable. Если карты уже в stable, сними отметку с **Карты** и скопируются только рекорды. Интерфейс на русском, если Windows на русском, иначе нажми **RU** сверху.
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Committers and reviewers: [Exotique](https://github.com/exotiquepy)
+- Approvers: [Exotique](https://github.com/exotiquepy)
+
+Only `lazer2stable.exe` built from this repository by the [Release workflow](.github/workflows/release.yml) is signed.
+
+Privacy: this program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.
+
 ---
 
 MIT license, made by Exotique. Uses Avalonia, Realm and CommunityToolkit.Mvvm ([notices](THIRD-PARTY-NOTICES.md)). To build it or add a translation, see [CONTRIBUTING.md](CONTRIBUTING.md).

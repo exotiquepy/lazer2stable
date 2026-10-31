@@ -21,3 +21,5 @@ After copying, launch osu!stable and press **F5** in song select for new maps. Y
 **FR** · Copie vers osu!stable les maps, les scores et les skins de osu!lazer qu'il n'a pas encore. Nouveau : l'outil s'appelle maintenant **lazer2stable** (anciennement Exotique), avec une nouvelle icône ; tes réglages sont repris. Si Windows bloque : **Informations complémentaires** → **Exécuter quand même**.
 
 **RU** · Копирует в osu!stable карты, рекорды и скины из osu!lazer, которых там ещё нет. Новое: программа теперь называется **lazer2stable** (раньше Exotique), с новой иконкой; настройки сохраняются. Если Windows блокирует: **Подробнее** → **Выполнить в любом случае**.
+
+[Code signing policy](https://github.com/exotiquepy/lazer2stable#code-signing-policy)
