@@ -1,6 +1,6 @@
 using Realms;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public sealed record LazerFile(string Filename, string Hash);
 
@@ -76,7 +76,7 @@ public static class LazerLibrary
         if (!Directory.Exists(lazer.FilesDir))
             throw new UserFacingException(Loc.F("ErrNoFilesDir", lazer.FilesDir));
 
-        string tempDir = Path.Combine(Path.GetTempPath(), "Exotique-" + Guid.NewGuid().ToString("N"));
+        string tempDir = Path.Combine(Path.GetTempPath(), "lazer2stable-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         string tempRealm = Path.Combine(tempDir, "client.realm");
 

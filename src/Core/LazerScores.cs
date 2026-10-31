@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Realms;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Un score de la base lazer, avec ce qu'il faut pour le convertir et l'afficher.</summary>
 public sealed record LazerScore(

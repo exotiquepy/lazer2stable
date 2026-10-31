@@ -1,7 +1,7 @@
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
-namespace Exotique.App.ViewModels;
+namespace Lazer2Stable.App.ViewModels;
 
 /// <summary>
 /// Charge les images de fond en arrière-plan (3 à la fois), réduites à la taille de la vignette,

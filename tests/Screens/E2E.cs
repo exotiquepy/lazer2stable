@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using Avalonia.Threading;
-using Exotique.App;
-using Exotique.App.ViewModels;
-using Exotique.Core;
+using Lazer2Stable.App;
+using Lazer2Stable.App.ViewModels;
+using Lazer2Stable.Core;
 
 // Parcours complet piloté par les vraies commandes :
 // analyse, sélection, copie (maps, collections, skins, scores), annulation, puis copie des scores seuls.

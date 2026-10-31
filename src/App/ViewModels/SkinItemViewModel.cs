@@ -4,9 +4,9 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Exotique.Core;
+using Lazer2Stable.Core;
 
-namespace Exotique.App.ViewModels;
+namespace Lazer2Stable.App.ViewModels;
 
 /// <summary>Une ligne de la liste des skins, avec un aperçu : un cercle à la couleur du premier combo, son chiffre, et le curseur.</summary>
 public sealed partial class SkinItemViewModel : ObservableObject

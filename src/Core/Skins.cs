@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Realms;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Une skin de la base lazer.</summary>
 public sealed class LazerSkin

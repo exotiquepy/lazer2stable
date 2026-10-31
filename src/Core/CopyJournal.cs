@@ -2,14 +2,14 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Un score ajouté à scores.db, de quoi le retrouver pour l'annulation.</summary>
 public sealed record JournalScore(string? ReplayMd5, string Key, string ReplayPath);
 
 /// <summary>
 /// Ce que la dernière copie a ajouté à stable, enregistré pour pouvoir l'annuler
-/// (%LOCALAPPDATA%\Exotique\derniere-copie.json).
+/// (%LOCALAPPDATA%\lazer2stable\last-copy.json).
 /// </summary>
 public sealed class CopyJournal
 {
@@ -32,14 +32,17 @@ public sealed class CopyJournal
     public bool HasCollections => AddedCollections.Count > 0 || AddedToCollections.Count > 0;
 
     private static string FilePath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Exotique", "derniere-copie.json");
+        Path.Combine(AppPaths.Local, "last-copy.json");
+
+    private static string OldFilePath => Path.Combine(AppPaths.OldLocal, "derniere-copie.json");
 
     public static CopyJournal? Load()
     {
         try
         {
-            if (!File.Exists(FilePath)) return null;
-            var j = JsonSerializer.Deserialize<CopyJournal>(File.ReadAllText(FilePath));
+            string path = File.Exists(FilePath) ? FilePath : OldFilePath;
+            if (!File.Exists(path)) return null;
+            var j = JsonSerializer.Deserialize<CopyJournal>(File.ReadAllText(path));
             return j is { IsEmpty: false } ? j : null;
         }
         catch
@@ -63,8 +66,11 @@ public sealed class CopyJournal
 
     public static void Delete()
     {
-        try { File.Delete(FilePath); }
-        catch { /* rien */ }
+        foreach (string path in new[] { FilePath, OldFilePath })
+        {
+            try { File.Delete(path); }
+            catch { /* rien */ }
+        }
     }
 }
 
@@ -129,8 +135,8 @@ public static class CopyUndo
 
                     if (removed > 0)
                     {
-                        File.Copy(dbPath, Path.Combine(journal.InstallDir, $"scores.db.avant-annulation-{DateTime.Now:yyyyMMdd-HHmmss}"));
-                        string temp = dbPath + ".exotique-tmp";
+                        File.Copy(dbPath, Path.Combine(journal.InstallDir, $"scores.db.lazer2stable-before-undo-{DateTime.Now:yyyyMMdd-HHmmss}"));
+                        string temp = dbPath + ".lazer2stable-tmp";
                         int expected = db.Count;
                         db.Write(temp, []);
                         if (StableScoresDb.Read(temp).Count != expected)

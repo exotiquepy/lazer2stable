@@ -1,4 +1,4 @@
-using Exotique.Core;
+using Lazer2Stable.Core;
 
 internal static class Check
 {

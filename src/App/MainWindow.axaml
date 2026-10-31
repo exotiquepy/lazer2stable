@@ -1,12 +1,12 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:app="using:Exotique.App"
-        xmlns:vm="using:Exotique.App.ViewModels"
-        xmlns:ctrl="using:Exotique.App.Controls"
-        x:Class="Exotique.App.MainWindow"
+        xmlns:app="using:Lazer2Stable.App"
+        xmlns:vm="using:Lazer2Stable.App.ViewModels"
+        xmlns:ctrl="using:Lazer2Stable.App.Controls"
+        x:Class="Lazer2Stable.App.MainWindow"
         x:DataType="vm:MainViewModel"
-        Title="Exotique"
-        Icon="avares://Exotique/Assets/app.ico"
+        Title="lazer2stable"
+        Icon="avares://lazer2stable/Assets/app.ico"
         Width="1220" Height="780" MinWidth="1000" MinHeight="620"
         WindowStartupLocation="CenterScreen"
         ExtendClientAreaToDecorationsHint="True"
@@ -22,8 +22,8 @@
     <!-- ========================================================= barre de titre -->
     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="18,0" VerticalAlignment="Center"
                 IsHitTestVisible="False">
-      <Image Source="avares://Exotique/Assets/app.png" Width="20" Height="20" />
-      <TextBlock Text="Exotique" Classes="display" FontWeight="ExtraBold" FontSize="16" Foreground="{StaticResource Wordmark}"
+      <Image Source="avares://lazer2stable/Assets/app.png" Width="20" Height="20" />
+      <TextBlock Text="lazer2stable" Classes="display" FontWeight="ExtraBold" FontSize="16" Foreground="{StaticResource Wordmark}"
                  VerticalAlignment="Center" />
       <TextBlock Text="{app:Tr Tagline}" Classes="faint" FontSize="13" VerticalAlignment="Center" Margin="2,1,0,0" />
     </StackPanel>

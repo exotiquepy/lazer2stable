@@ -1,4 +1,4 @@
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>
 /// Tous les textes de l'interface, en français, anglais et russe.
@@ -10,7 +10,7 @@ internal static class Strings
     public static readonly Dictionary<string, (string Fr, string En, string Ru)> Table = new()
     {
         // ------------------------------------------------------------ barre de titre
-        ["Tagline"] = ("lazer vers stable", "lazer to stable", "из lazer в stable"),
+        ["Tagline"] = ("maps, scores et skins", "maps, scores & skins", "карты, рекорды и скины"),
         ["DevelopedBy"] = ("développé par", "developed by", "разработчик"),
         ["LanguageTip"] = ("Langue", "Language", "Язык"),
         ["Change"] = ("Changer", "Change", "Изменить"),
@@ -18,9 +18,9 @@ internal static class Strings
         // ------------------------------------------------------------------ réglages
         ["SetupTitle"] = ("Où sont tes dossiers osu! ?", "Where are your osu! folders?", "Где твои папки osu!?"),
         ["SetupLead"] = (
-            "Exotique compare ta bibliothèque lazer à ton dossier Songs de stable, puis copie seulement ce qui manque. lazer n'est jamais modifié.",
-            "Exotique compares your lazer library with your stable Songs folder, then copies only what's missing. lazer is never modified.",
-            "Exotique сравнивает твою библиотеку lazer с папкой Songs в stable и копирует только то, чего не хватает. lazer никогда не изменяется."),
+            "lazer2stable compare ta bibliothèque lazer à ton dossier Songs de stable, puis copie seulement ce qui manque. lazer n'est jamais modifié.",
+            "lazer2stable compares your lazer library with your stable Songs folder, then copies only what's missing. lazer is never modified.",
+            "lazer2stable сравнивает твою библиотеку lazer с папкой Songs в stable и копирует только то, чего не хватает. lazer никогда не изменяется."),
         ["ChooseFolder"] = ("Choisir le dossier", "Choose folder", "Выбрать папку"),
         ["AnalyzeBoth"] = ("Analyser les deux bibliothèques", "Scan both libraries", "Проверить обе библиотеки"),
         ["LazerNotFound"] = (
@@ -88,15 +88,15 @@ internal static class Strings
         ["FormatFolders"] = ("Directement dans Songs", "Straight into Songs", "Прямо в Songs"),
         ["FormatFoldersHint"] = ("Le plus rapide, puis F5 dans stable", "Fastest, then F5 in stable", "Быстрее всего, затем F5 в stable"),
         ["FormatFoldersTip"] = (
-            "Exotique range chaque map dans Songs, comme stable le fait après un import. Le plus rapide. Dans stable, appuie ensuite sur F5 dans la sélection des musiques pour qu'il les voie.",
-            "Exotique puts each map in Songs, the same way stable does after an import. Fastest. In stable, press F5 in song select afterwards so it picks them up.",
-            "Exotique раскладывает каждую карту в Songs так же, как это делает stable после импорта. Быстрее всего. Потом нажми F5 в меню выбора песен в stable, чтобы он их увидел."),
+            "lazer2stable range chaque map dans Songs, comme stable le fait après un import. Le plus rapide. Dans stable, appuie ensuite sur F5 dans la sélection des musiques pour qu'il les voie.",
+            "lazer2stable puts each map in Songs, the same way stable does after an import. Fastest. In stable, press F5 in song select afterwards so it picks them up.",
+            "lazer2stable раскладывает каждую карту в Songs так же, как это делает stable после импорта. Быстрее всего. Потом нажми F5 в меню выбора песен в stable, чтобы он их увидел."),
         ["FormatOsz"] = ("En fichiers .osz", "As .osz files", "Файлами .osz"),
         ["FormatOszHint"] = ("Plus lent, stable les importe tout seul", "Slower, stable imports them by itself", "Медленнее, stable импортирует их сам"),
         ["FormatOszTip"] = (
-            "Exotique crée un .osz par map dans Songs ; stable les importe lui-même au démarrage, comme des maps téléchargées. Plus lent.",
-            "Exotique creates one .osz per map in Songs; stable imports them itself on startup, like downloaded maps. Slower.",
-            "Exotique создаёт по одному .osz на карту в Songs; stable сам импортирует их при запуске, как скачанные карты. Медленнее."),
+            "lazer2stable crée un .osz par map dans Songs ; stable les importe lui-même au démarrage, comme des maps téléchargées. Plus lent.",
+            "lazer2stable creates one .osz per map in Songs; stable imports them itself on startup, like downloaded maps. Slower.",
+            "lazer2stable создаёт по одному .osz на карту в Songs; stable сам импортирует их при запуске, как скачанные карты. Медленнее."),
         ["GroupCollections"] = ("Collections", "Collections", "Коллекции"),
         ["PCollectionsLabel"] = (
             "Ajouter ma collection lazer à stable|Ajouter mes {n} collections lazer à stable",
@@ -273,9 +273,9 @@ internal static class Strings
         ["CloseOsu"] = ("Fermer osu!", "Close osu!", "Закрыть osu!"),
         ["Closing"] = ("Fermeture…", "Closing…", "Закрываю…"),
         ["DialogOsuExplain"] = (
-            "Exotique peut le fermer pour toi avant de copier. osu! enregistre tout normalement en quittant.",
-            "Exotique can close it for you before copying. osu! saves everything as usual when it quits.",
-            "Exotique может закрыть его за тебя перед копированием. При выходе osu! всё сохранит как обычно."),
+            "lazer2stable peut le fermer pour toi avant de copier. osu! enregistre tout normalement en quittant.",
+            "lazer2stable can close it for you before copying. osu! saves everything as usual when it quits.",
+            "lazer2stable может закрыть его за тебя перед копированием. При выходе osu! всё сохранит как обычно."),
         ["DialogOsuFailed"] = (
             "osu! ne s'est pas fermé : une fenêtre de confirmation est peut-être ouverte dans osu!. Réponds-y, ou force la fermeture.",
             "osu! didn't close: a confirmation window may be open in osu!. Answer it, or force it to close.",
@@ -312,21 +312,21 @@ internal static class Strings
         // ------------------------------------------------------------------ erreurs
         ["ErrorTitle"] = ("Une erreur inattendue s'est produite", "Something unexpected went wrong", "Произошла непредвиденная ошибка"),
         ["ErrorBody"] = (
-            "Le détail est enregistré dans un fichier : envoie-le à Exotique pour qu'il corrige le problème. Tu peux continuer à utiliser l'appli.",
-            "The details are saved in a file: send it to Exotique so the problem can be fixed. You can keep using the app.",
-            "Подробности сохранены в файл: отправь его Exotique, чтобы проблему исправили. Можно продолжать работу."),
+            "Le détail est enregistré dans un fichier : joins-le à un signalement sur la page GitHub de lazer2stable (onglet Issues) pour que le problème soit corrigé. Tu peux continuer à utiliser l'appli.",
+            "The details are saved in a file: attach it to a report on lazer2stable's GitHub page (Issues tab) so the problem can be fixed. You can keep using the app.",
+            "Подробности сохранены в файл: приложи его к сообщению об ошибке на странице lazer2stable на GitHub (вкладка Issues), чтобы проблему исправили. Можно продолжать работу."),
         ["OpenErrorLog"] = ("Ouvrir le fichier d'erreur", "Open error file", "Открыть файл ошибки"),
         ["Continue"] = ("Continuer", "Continue", "Продолжить"),
-        ["FatalMessage"] = ("Exotique a rencontré une erreur et doit se fermer.", "Exotique ran into an error and has to close.", "В Exotique произошла ошибка, программа будет закрыта."),
+        ["FatalMessage"] = ("lazer2stable a rencontré une erreur et doit se fermer.", "lazer2stable ran into an error and has to close.", "В lazer2stable произошла ошибка, программа будет закрыта."),
         ["FatalLogged"] = ("Le détail est enregistré ici :", "Details are saved here:", "Подробности сохранены здесь:"),
         ["ErrNoFilesDir"] = (
             "Le dossier « files » est introuvable à côté de la base lazer ({0}).",
             "The \"files\" folder next to the lazer database wasn't found ({0}).",
             "Рядом с базой lazer не найдена папка «files» ({0})."),
         ["ErrOpenRealm"] = (
-            "Impossible d'ouvrir la base lazer : {0}\nSi lazer vient d'être mis à jour, son format de base a peut-être changé : il faut une version plus récente d'Exotique.",
-            "Can't open the lazer database: {0}\nIf lazer was just updated, its database format may have changed: you need a newer version of Exotique.",
-            "Не удалось открыть базу lazer: {0}\nЕсли lazer только что обновился, формат базы мог измениться: нужна более новая версия Exotique."),
+            "Impossible d'ouvrir la base lazer : {0}\nSi lazer vient d'être mis à jour, son format de base a peut-être changé : il faut une version plus récente de lazer2stable.",
+            "Can't open the lazer database: {0}\nIf lazer was just updated, its database format may have changed: you need a newer version of lazer2stable.",
+            "Не удалось открыть базу lazer: {0}\nЕсли lazer только что обновился, формат базы мог измениться: нужна более новая версия lazer2stable."),
         ["ErrCollUnreadable"] = (
             "collection.db illisible : fichier abîmé ou d'un format inconnu.",
             "collection.db can't be read: the file is damaged or in an unknown format.",
@@ -337,7 +337,7 @@ internal static class Strings
             "Новый collection.db не прошёл проверку: исходный файл сохранён."),
 
         // ------------------------------------------------------------------ rapport
-        ["RptTitle"] = ("Exotique {0} : rapport du {1}", "Exotique {0}: report from {1}", "Exotique {0}: отчёт от {1}"),
+        ["RptTitle"] = ("lazer2stable {0} : rapport du {1}", "lazer2stable {0}: report from {1}", "lazer2stable {0}: отчёт от {1}"),
         ["RptDate"] = ("dd/MM/yyyy à HH:mm", "yyyy-MM-dd HH:mm", "dd.MM.yyyy HH:mm"),
         ["RptLazer"] = ("Données lazer : {0}", "lazer data: {0}", "Данные lazer: {0}"),
         ["RptSongs"] = ("Songs stable : {0}", "stable Songs: {0}", "Songs в stable: {0}"),
@@ -680,18 +680,18 @@ internal static class Strings
         ["UndoThisCopy"] = ("Annuler cette copie", "Undo this copy", "Отменить копирование"),
         ["UndoTitle"] = ("Annuler la dernière copie ?", "Undo the last copy?", "Отменить последнее копирование?"),
         ["UndoBody"] = (
-            "Exotique va retirer de stable {0}. Ce qui est supprimé part à la corbeille, et ce que tu as fait dans stable depuis est gardé.",
-            "Exotique will remove {0} from stable. Deleted files go to the Recycle Bin, and whatever you did in stable since then is kept.",
-            "Exotique уберёт из stable: {0}. Удалённое отправится в корзину, а всё, что ты сделал в stable с тех пор, сохранится."),
+            "lazer2stable va retirer de stable {0}. Ce qui est supprimé part à la corbeille, et ce que tu as fait dans stable depuis est gardé.",
+            "lazer2stable will remove {0} from stable. Deleted files go to the Recycle Bin, and whatever you did in stable since then is kept.",
+            "lazer2stable уберёт из stable: {0}. Удалённое отправится в корзину, а всё, что ты сделал в stable с тех пор, сохранится."),
         ["UndoCollections"] = ("les collections ajoutées", "the collections added", "добавленные коллекции"),
         ["UndoButton"] = ("Retirer de stable", "Remove from stable", "Убрать из stable"),
         ["CloseThenUndo"] = ("Fermer osu! puis retirer", "Close osu! and remove", "Закрыть osu! и убрать"),
         ["UndoOsuExplain"] = (
-            "stable réécrit scores.db et collection.db en quittant : ferme-le d'abord, Exotique peut le faire pour toi.",
-            "stable rewrites scores.db and collection.db when it quits: close it first, Exotique can do it for you.",
-            "stable перезаписывает scores.db и collection.db при выходе: сначала закрой его, Exotique может сделать это за тебя."),
+            "stable réécrit scores.db et collection.db en quittant : ferme-le d'abord, lazer2stable peut le faire pour toi.",
+            "stable rewrites scores.db and collection.db when it quits: close it first, lazer2stable can do it for you.",
+            "stable перезаписывает scores.db и collection.db при выходе: сначала закрой его, lazer2stable может сделать это за тебя."),
         ["UndoDoneTitle"] = ("Copie annulée", "Copy undone", "Копирование отменено"),
-        ["UndoDoneBody"] = ("C'est fait, Exotique a retiré de stable {0}.", "Done: Exotique removed {0} from stable.", "Готово, Exotique убрал из stable: {0}."),
+        ["UndoDoneBody"] = ("C'est fait, lazer2stable a retiré de stable {0}.", "Done: lazer2stable removed {0} from stable.", "Готово, lazer2stable убрал из stable: {0}."),
         ["UndoNothing"] = ("Il n'y avait plus rien à retirer : tout avait déjà été enlevé.", "There was nothing left to remove: everything had already been taken out.", "Убирать было нечего: всё уже удалено."),
         ["UndoErrors"] = ("Certains éléments n'ont pas pu être retirés :", "Some items couldn't be removed:", "Некоторые элементы не удалось убрать:"),
         ["PCollections"] = ("{n} collection|{n} collections", "{n} collection|{n} collections", "{n} коллекция|{n} коллекции|{n} коллекций"),

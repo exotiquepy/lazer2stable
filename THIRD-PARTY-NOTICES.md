@@ -1,6 +1,6 @@
 # Third-party notices
 
-Exotique is built with the following open-source components. Thanks to their authors.
+lazer2stable is built with the following open-source components. Thanks to their authors.
 
 | Component | License | Link |
 |---|---|---|
@@ -12,4 +12,4 @@ Exotique is built with the following open-source components. Thanks to their aut
 
 The font license texts are in `Assets/Fonts`.
 
-osu! is a trademark of ppy Pty Ltd. Exotique is an independent community tool and is not affiliated with or endorsed by ppy.
+osu! is a trademark of ppy Pty Ltd. lazer2stable is an independent community tool and is not affiliated with or endorsed by ppy.

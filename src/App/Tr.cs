@@ -1,8 +1,8 @@
 using Avalonia.Data;
 using Avalonia.Markup.Xaml;
-using Exotique.Core;
+using Lazer2Stable.Core;
 
-namespace Exotique.App;
+namespace Lazer2Stable.App;
 
 /// <summary>
 /// Texte traduit en XAML : <c>Text="{app:Tr SetupTitle}"</c>.

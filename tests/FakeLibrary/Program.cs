@@ -3,7 +3,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
-using Exotique.Core;
+using Lazer2Stable.Core;
 using Realms;
 using Realms.Schema;
 

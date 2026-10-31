@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public enum OsuKind { Stable, Lazer }
 

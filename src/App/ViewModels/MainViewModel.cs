@@ -3,9 +3,9 @@ using System.Diagnostics;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Exotique.Core;
+using Lazer2Stable.Core;
 
-namespace Exotique.App.ViewModels;
+namespace Lazer2Stable.App.ViewModels;
 
 public enum Screen { Setup, Analyzing, Review, Exporting, Done }
 
@@ -1960,7 +1960,7 @@ public sealed partial class MainViewModel : ObservableObject
         ScoreExportResult? sr = null;
         if (scores > 0)
         {
-            sr = new ScoreExportResult { BackupPath = "scores.db.avant-exotique-20261030-140512" };
+            sr = new ScoreExportResult { BackupPath = "scores.db.lazer2stable-backup-20261030-140512" };
             foreach (var s in allScores.Where(s => s.IsCopyCandidate).Take(scores)) sr.Added.Add(s.Item);
         }
 
@@ -1971,7 +1971,7 @@ public sealed partial class MainViewModel : ObservableObject
             foreach (var k in allSkins.Where(k => k.IsCopyCandidate).Take(skins)) kr.Exported.Add((k.Item, "x"));
         }
 
-        ShowDone(new DoneState(r, new CollectionsExportResult(3, 2, 140, "collection.db.avant-exotique-20261029-010203", "collection.db"),
+        ShowDone(new DoneState(r, new CollectionsExportResult(3, 2, 140, "collection.db.lazer2stable-backup-20261029-010203", "collection.db"),
             null, n, sr, null, scores, kr, skins, TimeSpan.FromSeconds(162)));
     }
 

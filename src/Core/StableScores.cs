@@ -1,11 +1,11 @@
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>
 /// scores.db de stable (classement Local) : Int32 version, Int32 nombre de maps, puis pour chaque map :
 /// String MD5, Int32 nombre de scores, et les scores (voir <see cref="OsuScore"/>).
-/// Les scores existants sont gardés octet pour octet : Exotique ajoute, il ne réécrit jamais ce qui est déjà là.
+/// Les scores existants sont gardés octet pour octet : lazer2stable ajoute, il ne réécrit jamais ce qui est déjà là.
 /// </summary>
 public sealed class StableScoresDb
 {

@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace Exotique.App.Controls;
+namespace Lazer2Stable.App.Controls;
 
 /// <summary>
 /// Un hit circle façon osu! avec son cercle d'approche : le nombre de maps au centre,

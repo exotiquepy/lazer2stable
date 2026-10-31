@@ -1,14 +1,14 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Exotique.App.ViewModels"
-             x:Class="Exotique.App.App"
+             xmlns:vm="using:Lazer2Stable.App.ViewModels"
+             x:Class="Lazer2Stable.App.App"
              RequestedThemeVariant="Dark">
   <Application.Resources>
     <ResourceDictionary>
       <!-- Exo 2 : l'ancienne police de l'interface de lazer, pour les titres et les nombres. -->
-      <FontFamily x:Key="DisplayFont">avares://Exotique/Assets/Fonts#Exo 2</FontFamily>
-      <FontFamily x:Key="BodyFont">avares://Exotique/Assets/Fonts#Nunito Sans</FontFamily>
-      <FontFamily x:Key="ContentControlThemeFontFamily">avares://Exotique/Assets/Fonts#Nunito Sans</FontFamily>
+      <FontFamily x:Key="DisplayFont">avares://lazer2stable/Assets/Fonts#Exo 2</FontFamily>
+      <FontFamily x:Key="BodyFont">avares://lazer2stable/Assets/Fonts#Nunito Sans</FontFamily>
+      <FontFamily x:Key="ContentControlThemeFontFamily">avares://lazer2stable/Assets/Fonts#Nunito Sans</FontFamily>
 
       <!-- Nuit violette ; rose = lazer (source), bleu ciel = stable (destination). -->
       <Color x:Key="BgColor">#16112A</Color>
@@ -31,7 +31,7 @@
       <SolidColorBrush x:Key="Warn" Color="#FFC363" />
       <SolidColorBrush x:Key="WarnBg" Color="#3A2C1E" />
       <SolidColorBrush x:Key="Scrim" Color="#C20D0920" />
-      <!-- Le nom Exotique en dégradé : de la couleur de lazer à celle de stable. -->
+      <!-- Le nom de l'appli en dégradé : de la couleur de lazer à celle de stable. -->
       <LinearGradientBrush x:Key="Wordmark" StartPoint="0%,0%" EndPoint="100%,0%">
         <GradientStop Color="#FF62A8" Offset="0" />
         <GradientStop Color="#C58BFF" Offset="0.55" />
@@ -85,6 +85,6 @@
                                ListMedium="#2F2650" />
       </FluentTheme.Palettes>
     </FluentTheme>
-    <StyleInclude Source="avares://Exotique/src/App/Theme.axaml" />
+    <StyleInclude Source="avares://lazer2stable/src/App/Theme.axaml" />
   </Application.Styles>
 </Application>

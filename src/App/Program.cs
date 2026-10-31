@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Avalonia;
 
-namespace Exotique.App;
+namespace Lazer2Stable.App;
 
 internal static class Program
 {
@@ -12,11 +12,11 @@ internal static class Program
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             var ex = e.ExceptionObject as Exception;
-            Exotique.Core.CrashLog.ShowFatal(ex, Exotique.Core.CrashLog.Write(ex));
+            Lazer2Stable.Core.CrashLog.ShowFatal(ex, Lazer2Stable.Core.CrashLog.Write(ex));
         };
         TaskScheduler.UnobservedTaskException += (_, e) =>
         {
-            Exotique.Core.CrashLog.Write(e.Exception);
+            Lazer2Stable.Core.CrashLog.Write(e.Exception);
             e.SetObserved();
         };
 
@@ -29,9 +29,9 @@ internal static class Program
             .UsePlatformDetect()
             .LogToTrace();
 
-        // Rendu logiciel si on le demande (EXOTIQUE_SOFTWARE=1) ou si on tourne sous Wine :
+        // Rendu logiciel si on le demande (LAZER2STABLE_SOFTWARE=1) ou si on tourne sous Wine :
         // l'accélération graphique y est souvent absente.
-        if (OperatingSystem.IsWindows() && (Environment.GetEnvironmentVariable("EXOTIQUE_SOFTWARE") == "1" || IsWine()))
+        if (OperatingSystem.IsWindows() && (Environment.GetEnvironmentVariable("LAZER2STABLE_SOFTWARE") == "1" || IsWine()))
         {
             builder = builder.With(new Win32PlatformOptions
             {

@@ -1,7 +1,7 @@
 using System.Runtime.Versioning;
 using Microsoft.Win32;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public sealed record LazerLocation(string StorageDir, string RealmPath)
 {

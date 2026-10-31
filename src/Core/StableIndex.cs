@@ -4,12 +4,15 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Ce que stable possède déjà : identifiants de sets, de difficultés, et MD5 des fichiers .osu.</summary>
 public sealed partial class StableIndex
 {
-    public const string TempFolderName = ".exotique-tmp";
+    public const string TempFolderName = ".lazer2stable-tmp";
+
+    /// <summary>Dossier temporaire des versions d'avant le changement de nom, ignoré s'il en reste un.</summary>
+    private const string OldTempFolderName = ".exotique-tmp";
 
     public HashSet<int> SetIds { get; } = [];
     public HashSet<int> BeatmapIds { get; } = [];
@@ -31,7 +34,7 @@ public sealed partial class StableIndex
         foreach (string dir in Directory.EnumerateDirectories(songsDir, "*", enumOptions))
         {
             string name = Path.GetFileName(dir);
-            if (name.Equals(TempFolderName, StringComparison.OrdinalIgnoreCase)) continue;
+            if (name.Equals(TempFolderName, StringComparison.OrdinalIgnoreCase) || name.Equals(OldTempFolderName, StringComparison.OrdinalIgnoreCase)) continue;
 
             index.FolderNames.Add(name);
             index.FolderCount++;
@@ -110,8 +113,9 @@ public sealed partial class StableIndex
     private static bool IsInTempFolder(string songsDir, string path)
     {
         string rel = Path.GetRelativePath(songsDir, path);
-        return rel.StartsWith(TempFolderName + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
-               || rel.StartsWith(TempFolderName + '/', StringComparison.OrdinalIgnoreCase);
+        return new[] { TempFolderName, OldTempFolderName }.Any(t =>
+            rel.StartsWith(t + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+            || rel.StartsWith(t + '/', StringComparison.OrdinalIgnoreCase));
     }
 
     private static int? LeadingId(string name)

@@ -1,13 +1,13 @@
 using System.Globalization;
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Rapport texte de chaque copie, dans la langue de l'interface.</summary>
 public static class Report
 {
     public static string DefaultDirectory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Exotique", "rapports");
+        Path.Combine(AppPaths.Local, "reports");
 
     /// <returns>Chemin du rapport écrit.</returns>
     public static string Write(LazerLocation lazer, StableLocation stable, Plan plan, IReadOnlyCollection<PlanItem> selected,
@@ -101,12 +101,12 @@ public static class Report
         try
         {
             Directory.CreateDirectory(DefaultDirectory);
-            path = Path.Combine(DefaultDirectory, "rapport-" + name);
+            path = Path.Combine(DefaultDirectory, "report-" + name);
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         }
         catch
         {
-            path = Path.Combine(Path.GetTempPath(), "Exotique-rapport-" + name);
+            path = Path.Combine(Path.GetTempPath(), "lazer2stable-report-" + name);
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
         }
 

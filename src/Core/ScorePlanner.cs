@@ -1,4 +1,4 @@
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public enum ScoreDecision
 {

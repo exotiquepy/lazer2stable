@@ -5,14 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <AssemblyName>Exotique</AssemblyName>
-    <RootNamespace>Exotique</RootNamespace>
-    <Version>2.4.0</Version>
-    <Product>Exotique</Product>
+    <AssemblyName>lazer2stable</AssemblyName>
+    <RootNamespace>Lazer2Stable</RootNamespace>
+    <Version>2.5.0</Version>
+    <Product>lazer2stable</Product>
     <Company>Exotique</Company>
     <Authors>Exotique</Authors>
     <Copyright>© 2026 Exotique</Copyright>
-    <Description>Exotique: copies the osu!lazer beatmaps, scores and skins missing from osu!stable. Developed by Exotique.</Description>
+    <Description>lazer2stable: copies the osu!lazer beatmaps, scores and skins missing from osu!stable.</Description>
     <InvariantGlobalization>true</InvariantGlobalization>
     <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
     <ApplicationManifest>app.manifest</ApplicationManifest>

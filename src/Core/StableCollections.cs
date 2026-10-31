@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public sealed record StableCollection(string Name, List<string> Md5s);
 
@@ -82,7 +82,7 @@ public static class StableCollections
         if (File.Exists(dbPath))
         {
             (version, existing) = Read(dbPath);
-            backup = Path.Combine(Path.GetDirectoryName(dbPath)!, $"collection.db.avant-exotique-{DateTime.Now:yyyyMMdd-HHmmss}");
+            backup = Path.Combine(Path.GetDirectoryName(dbPath)!, $"collection.db.lazer2stable-backup-{DateTime.Now:yyyyMMdd-HHmmss}");
             File.Copy(dbPath, backup);
         }
 
@@ -117,7 +117,7 @@ public static class StableCollections
 
         if (removedCollections + removedHashes == 0) return (0, 0);
 
-        File.Copy(dbPath, Path.Combine(Path.GetDirectoryName(dbPath)!, $"collection.db.avant-annulation-{DateTime.Now:yyyyMMdd-HHmmss}"));
+        File.Copy(dbPath, Path.Combine(Path.GetDirectoryName(dbPath)!, $"collection.db.lazer2stable-before-undo-{DateTime.Now:yyyyMMdd-HHmmss}"));
         ReplaceVerified(dbPath, version, existing);
         return (removedCollections, removedHashes);
     }

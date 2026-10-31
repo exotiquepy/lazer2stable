@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>
 /// Un score au format d'osu! stable. Les mêmes champs forment l'en-tête d'un replay (.osr) et une entrée de scores.db ;

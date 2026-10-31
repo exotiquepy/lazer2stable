@@ -1,9 +1,9 @@
 using System.Globalization;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Exotique.Core;
+using Lazer2Stable.Core;
 
-namespace Exotique.App.ViewModels;
+namespace Lazer2Stable.App.ViewModels;
 
 /// <summary>Une ligne de la liste des scores.</summary>
 public sealed partial class ScoreItemViewModel : ObservableObject

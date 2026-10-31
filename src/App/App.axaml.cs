@@ -2,10 +2,10 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using Exotique.App.ViewModels;
-using Exotique.Core;
+using Lazer2Stable.App.ViewModels;
+using Lazer2Stable.Core;
 
-namespace Exotique.App;
+namespace Lazer2Stable.App;
 
 public sealed class App : Application
 {

@@ -1,9 +1,9 @@
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Exotique.Core;
+using Lazer2Stable.Core;
 
-namespace Exotique.App.ViewModels;
+namespace Lazer2Stable.App.ViewModels;
 
 public sealed record DifficultyDot(IBrush Fill, IBrush Stroke, string Tip);
 

@@ -1,7 +1,21 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
+
+/// <summary>Dossiers de l'appli : %APPDATA%\lazer2stable (réglages) et %LOCALAPPDATA%\lazer2stable (rapports, erreurs, dernière copie).</summary>
+public static class AppPaths
+{
+    public const string Name = "lazer2stable";
+
+    /// <summary>Nom des dossiers jusqu'à la v2.4 : les réglages et la dernière copie y sont repris.</summary>
+    private const string OldName = "Exotique";
+
+    public static string Roaming => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Name);
+    public static string Local => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Name);
+    public static string OldRoaming => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), OldName);
+    public static string OldLocal => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), OldName);
+}
 
 public static class AppInfo
 {
@@ -12,11 +26,11 @@ public static class AppInfo
         AssemblyVersion.Build > 0 ? $"v{AssemblyVersion.Major}.{AssemblyVersion.Minor}.{AssemblyVersion.Build}" : $"v{AssemblyVersion.Major}.{AssemblyVersion.Minor}";
 }
 
-/// <summary>Écrit les erreurs inattendues dans %LOCALAPPDATA%\Exotique\erreurs pour pouvoir les envoyer.</summary>
+/// <summary>Écrit les erreurs inattendues dans %LOCALAPPDATA%\lazer2stable\errors pour pouvoir les envoyer.</summary>
 public static class CrashLog
 {
     public static string Directory =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Exotique", "erreurs");
+        Path.Combine(AppPaths.Local, "errors");
 
     public static string? Write(Exception? e)
     {
@@ -25,7 +39,7 @@ public static class CrashLog
             System.IO.Directory.CreateDirectory(Directory);
             string path = Path.Combine(Directory, $"erreur-{DateTime.Now:yyyy-MM-dd_HHmmss}.txt");
             var sb = new StringBuilder();
-            sb.AppendLine($"Exotique {AppInfo.DisplayVersion} : erreur du {DateTime.Now:dd/MM/yyyy à HH:mm:ss}");
+            sb.AppendLine($"lazer2stable {AppInfo.DisplayVersion}, {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"Système : {RuntimeInformation.OSDescription} ({RuntimeInformation.OSArchitecture})");
             sb.AppendLine();
             sb.AppendLine(e?.ToString() ?? "(erreur sans détail)");
@@ -47,7 +61,7 @@ public static class CrashLog
             string text = Loc.T("FatalMessage") + Environment.NewLine + Environment.NewLine +
                           (e?.Message ?? "") + Environment.NewLine + Environment.NewLine +
                           (logPath != null ? Loc.T("FatalLogged") + Environment.NewLine + logPath : "");
-            MessageBoxW(IntPtr.Zero, text, "Exotique", 0x10 /* MB_ICONERROR */);
+            MessageBoxW(IntPtr.Zero, text, AppPaths.Name, 0x10 /* MB_ICONERROR */);
         }
         catch
         {

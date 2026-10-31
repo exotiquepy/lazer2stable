@@ -1,4 +1,4 @@
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public sealed class ScoreExportResult
 {
@@ -90,7 +90,7 @@ public static class ScoreExporter
                 string target = Path.Combine(replaysDir, entry.ReplayFileName);
                 if (File.Exists(target)) continue; // déjà dans Data\r
 
-                string temp = target + ".exotique-tmp";
+                string temp = target + ".lazer2stable-tmp";
                 File.WriteAllBytes(temp, bytes);
                 File.Move(temp, target);
                 written.Add(target);
@@ -113,11 +113,11 @@ public static class ScoreExporter
         {
             if (File.Exists(dbPath))
             {
-                result.BackupPath = Path.Combine(installDir, $"scores.db.avant-exotique-{DateTime.Now:yyyyMMdd-HHmmss}");
+                result.BackupPath = Path.Combine(installDir, $"scores.db.lazer2stable-backup-{DateTime.Now:yyyyMMdd-HHmmss}");
                 File.Copy(dbPath, result.BackupPath);
             }
 
-            string temp = dbPath + ".exotique-tmp";
+            string temp = dbPath + ".lazer2stable-tmp";
             db.Write(temp, additions);
 
             // Relecture de contrôle avant de remplacer l'original.

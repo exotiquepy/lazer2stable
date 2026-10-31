@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 /// <summary>Fichier non copié : nom refusé (chemin dangereux) ou absent du stockage lazer.</summary>
 public sealed record ExportWarning(string SetName, bool RejectedName, string File)

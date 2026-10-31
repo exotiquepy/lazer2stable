@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public static class Fmt
 {
@@ -70,7 +70,7 @@ public static class Fmt
     }
 }
 
-/// <summary>Réglages mémorisés entre deux lancements (%APPDATA%\Exotique\settings.json).</summary>
+/// <summary>Réglages mémorisés entre deux lancements (%APPDATA%\lazer2stable\settings.json).</summary>
 public sealed class Settings
 {
     public string? LazerPath { get; set; }
@@ -86,14 +86,18 @@ public sealed class Settings
     public string? Language { get; set; }
 
     private static string FilePath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Exotique", "settings.json");
+        Path.Combine(AppPaths.Roaming, "settings.json");
+
+    private static string OldFilePath => Path.Combine(AppPaths.OldRoaming, "settings.json");
 
     public static Settings Load()
     {
         try
         {
-            if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) ?? new Settings();
+            // Premier lancement après le changement de nom : on reprend les réglages de l'ancien dossier.
+            string path = File.Exists(FilePath) ? FilePath : OldFilePath;
+            if (File.Exists(path))
+                return JsonSerializer.Deserialize<Settings>(File.ReadAllText(path)) ?? new Settings();
         }
         catch
         {

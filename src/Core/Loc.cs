@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace Exotique.Core;
+namespace Lazer2Stable.Core;
 
 public enum Lang { Fr, En, Ru }
 
@@ -97,10 +97,10 @@ public sealed class Loc : INotifyPropertyChanged
         _ => null,
     };
 
-    /// <summary>Langue de Windows (ou EXOTIQUE_LANG / LANG ailleurs) ; anglais par défaut.</summary>
+    /// <summary>Langue de Windows (ou LAZER2STABLE_LANG / LANG ailleurs) ; anglais par défaut.</summary>
     public static Lang Detect()
     {
-        if (Parse(Environment.GetEnvironmentVariable("EXOTIQUE_LANG")) is Lang forced) return forced;
+        if (Parse(Environment.GetEnvironmentVariable("LAZER2STABLE_LANG")) is Lang forced) return forced;
 
         if (OperatingSystem.IsWindows())
         {

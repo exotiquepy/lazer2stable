@@ -1,10 +1,10 @@
-// Rend chaque écran d'Exotique hors écran (Avalonia headless + Skia) et enregistre des PNG.
+// Rend chaque écran de lazer2stable hors écran (Avalonia headless + Skia) et enregistre des PNG.
 using Avalonia;
 using Avalonia.Headless;
 using Avalonia.Threading;
-using Exotique.App;
-using Exotique.App.ViewModels;
-using Exotique.Core;
+using Lazer2Stable.App;
+using Lazer2Stable.App.ViewModels;
+using Lazer2Stable.Core;
 
 internal static class Shots
 {

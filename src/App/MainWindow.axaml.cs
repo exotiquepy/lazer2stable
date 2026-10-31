@@ -4,9 +4,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
-using Exotique.App.ViewModels;
+using Lazer2Stable.App.ViewModels;
 
-namespace Exotique.App;
+namespace Lazer2Stable.App;
 
 public partial class MainWindow : Window, IShell
 {

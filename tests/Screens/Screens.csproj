@@ -9,7 +9,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Exotique.csproj" />
+    <ProjectReference Include="../../lazer2stable.csproj" />
     <PackageReference Include="Avalonia.Headless" Version="11.3.22" />
     <PackageReference Include="Avalonia.Skia" Version="11.3.22" />
   </ItemGroup>
