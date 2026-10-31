@@ -26,6 +26,12 @@ internal static class Shots
             return;
         }
 
+        if (args.Length > 5 && args[5] == "showcase")
+        {
+            Showcase.Run(lazerDir, stableDir, outDir, width, height);
+            return;
+        }
+
         foreach (var lang in new[] { Lang.Fr, Lang.En, Lang.Ru })
             RunLanguage(lang, Path.Combine(outDir, Loc.Code(lang)), lazerDir, stableDir, width, height);
         Console.WriteLine("captures : " + Directory.GetFiles(outDir, "*.png", SearchOption.AllDirectories).Length);

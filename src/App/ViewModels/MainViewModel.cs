@@ -216,8 +216,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         LazerFound = lazer != null;
         StableFound = stable != null;
-        LazerPathText = lazer?.StorageDir ?? Loc.T("LazerNotFound");
-        StablePathText = stable?.SongsDir ?? Loc.T("StableNotFound");
+        LazerPathText = lazer != null ? TestShowPath(lazer.StorageDir) : Loc.T("LazerNotFound");
+        StablePathText = stable != null ? TestShowPath(stable.SongsDir) : Loc.T("StableNotFound");
     }
 
     [RelayCommand]
@@ -1376,7 +1376,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (m == 0 && s == 0 && k == 0 && stable.InstallDir != null) destinations.Add(stable.InstallDir);
 
         ConfirmBody = string.Join("\n", body);
-        ConfirmDestination = string.Join("\n", destinations.Distinct());
+        ConfirmDestination = string.Join("\n", destinations.Distinct().Select(TestShowPath));
         ConfirmCollections = WillCopyCollections ? Loc.F("ConfirmCollections", CollectionsDetail) : "";
     }
 
@@ -1951,11 +1951,64 @@ public sealed partial class MainViewModel : ObservableObject
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(8)) RecentlyExported.Add(i);
     }
 
-    internal void TestShowDone(int n, int scores = 0, int skins = 0)
+    /// <summary>Captures : chemins affichés à la place des vrais (les captures du README montrent des chemins Windows).</summary>
+    internal static Func<string, string> TestShowPath = p => p;
+
+    /// <summary>Une image de l'analyse en cours, à l'avancement <paramref name="f"/> (0 à 1).</summary>
+    internal void TestAnalysisFrame(double f, int sets, int scores, int skins, int difficulties, int missingMaps, int missingScores, int missingSkins)
     {
-        var r = new ExportResult { BytesCopied = 3_456_789_012 };
+        CurrentScreen = Screen.Analyzing;
+        double lf = Math.Clamp(f / LazerWeight, 0, 1);
+        double sf = Math.Clamp((f - LazerWeight) / SongsWeight, 0, 1);
+        double cf = Math.Clamp((f - LazerWeight - SongsWeight) / CompareWeight, 0, 1);
+
+        if (lf < 1)
+        {
+            LazerStep.Start(() => Loc.F("StepSetsProgress", Fmt.N((int)(sets * lf)), Fmt.N(sets)));
+            LazerStep.Fraction = lf;
+        }
+        else LazerStep.Finish(() => $"{Loc.P("PMaps", sets)}, {Loc.P("PScores", scores)}, {Loc.P("PSkins", skins)}");
+
+        if (lf < 1) SongsStep.Reset();
+        else if (sf < 1)
+        {
+            SongsStep.Start(() => Loc.F("StepDiffProgress", Fmt.N((int)(difficulties * sf)), Fmt.N(difficulties)));
+            SongsStep.Fraction = sf;
+        }
+        else SongsStep.Finish(() => Loc.P("PDifficulties", difficulties));
+
+        if (sf < 1) CompareStep.Reset();
+        else if (cf < 1)
+        {
+            CompareStep.Start(() => "");
+            CompareStep.Fraction = cf;
+        }
+        else CompareStep.Finish(() => $"{Loc.P("PMissingMaps", missingMaps)}, {Loc.P("PMissingScores", missingScores)}, {Loc.P("PMissingSkins", missingSkins)}");
+
+        SetAnalysisProgress(f);
+    }
+
+    /// <summary>Une image de la copie : <paramref name="recent"/> est la liste « déjà copiées », la plus récente en premier.</summary>
+    internal void TestExportFrame(MapItemViewModel current, int done, int total, long bytesDone, long bytesTotal, TimeSpan eta, IReadOnlyList<MapItemViewModel> recent)
+    {
+        CurrentScreen = Screen.Exporting;
+        CurrentExport = current;
+        exportPhase = ExportPhase.Maps;
+        CanStop = true;
+        CircleText = Fmt.N(done);
+        CircleApproach = (double)done / total;
+        lastProgress = new ExportProgress(done, total, current.Item, bytesDone, bytesTotal);
+        lastEta = eta;
+        RefreshExportTexts();
+        RecentlyExported.Clear();
+        foreach (var i in recent) RecentlyExported.Add(i);
+    }
+
+    internal void TestShowDone(int n, int scores = 0, int skins = 0, bool warning = true, long bytes = 3_456_789_012, int seconds = 162)
+    {
+        var r = new ExportResult { BytesCopied = bytes };
         foreach (var i in allItems.Where(i => i.IsCopyCandidate).Take(n)) r.Exported.Add((i.Item, "x"));
-        r.Warnings.Add(new ExportWarning("1011 Artist K - No audio K (x)", false, "audio.mp3"));
+        if (warning) r.Warnings.Add(new ExportWarning("1011 Artist K - No audio K (x)", false, "audio.mp3"));
 
         ScoreExportResult? sr = null;
         if (scores > 0)
@@ -1972,7 +2025,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         ShowDone(new DoneState(r, new CollectionsExportResult(3, 2, 140, "collection.db.lazer2stable-backup-20261029-010203", "collection.db"),
-            null, n, sr, null, scores, kr, skins, TimeSpan.FromSeconds(162)));
+            null, n, sr, null, scores, kr, skins, TimeSpan.FromSeconds(seconds)));
     }
 
     internal void TestOpenConfirm() => AskExport();

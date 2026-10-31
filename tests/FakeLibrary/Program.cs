@@ -368,6 +368,18 @@ using (var realm = Realm.GetInstance(config))
             showcaseMd5.Add(set.DynamicApi.GetList<IRealmObject>("Beatmaps").Select(b => b.DynamicApi.Get<string>("MD5Hash")).ToList());
             showcaseSets.Add(set);
 
+            // FAKE_REAL_SIZES=1 : audio à une taille réaliste (fichier creux, ne prend pas de place) pour les captures du README.
+            if (Environment.GetEnvironmentVariable("FAKE_REAL_SIZES") == "1")
+            {
+                foreach (var usage in set.DynamicApi.GetList<IEmbeddedObject>("Files"))
+                {
+                    if (usage.DynamicApi.Get<string>("Filename") != "audio.mp3") continue;
+                    string h = usage.DynamicApi.Get<IRealmObject>("File").DynamicApi.Get<string>("Hash");
+                    using var audio = new FileStream(Path.Combine(lazerDir, "files", h[..1], h[..2], h), FileMode.Open);
+                    audio.SetLength(3_400_000 + (i * 1_048_573L) % 6_600_000);
+                }
+            }
+
             if (i % 3 == 2)
                 StableFolder($"{setId} {artist} - {title}", ((string, byte[]))files[2]);
         }

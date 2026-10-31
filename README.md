@@ -1,95 +1,152 @@
-<p align="center"><img src="Assets/app.png" width="96" alt="lazer2stable"></p>
+<p align="center">
+  <img src="docs/banner.png" alt="lazer2stable: your osu!lazer maps, scores and skins, in osu!stable">
+</p>
 
-<h1 align="center">lazer2stable</h1>
+<p align="center">
+  <a href="https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe"><img src="https://img.shields.io/badge/Download-lazer2stable.exe-FF62A8?style=for-the-badge&logo=windows&logoColor=white" alt="Download lazer2stable.exe"></a>
+</p>
 
-<p align="center">Copy the beatmaps, scores and skins you have in <b>osu!lazer</b> to <b>osu!stable</b>, only the ones stable doesn't have yet.<br>
-Windows · English / Français / Русский · developed by Exotique</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-63C9FF?style=flat-square" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/install-none%2C%20one%20.exe-A39BC9?style=flat-square" alt="No install">
+  <img src="https://img.shields.io/badge/works-offline-A39BC9?style=flat-square" alt="Works offline">
+  <img src="https://img.shields.io/badge/EN%20%C2%B7%20FR%20%C2%B7%20RU-A39BC9?style=flat-square" alt="English, French, Russian">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-A39BC9?style=flat-square" alt="MIT license"></a>
+</p>
 
-<p align="center"><img src="docs/screenshot-list.png" width="820" alt="lazer2stable: list of maps to copy"></p>
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#what-gets-copied">What gets copied</a> ·
+  <a href="#your-data-is-safe">Safety</a> ·
+  <a href="#faq">FAQ</a> ·
+  <a href="#français">Français</a> ·
+  <a href="#русский">Русский</a>
+</p>
 
-## Download and use
+<br>
 
-1. Download `lazer2stable.exe` from the [Releases](../../releases) page. Nothing to install.
-   The exe isn't code-signed, so Windows may show "Windows protected your PC": click **More info**, then **Run anyway**.
-2. Launch it. lazer2stable finds your lazer and stable folders and scans both libraries. You can change either folder with **Change**.
-3. Review the lists. **Beatmaps**, **Scores** and **Skins** each have a checkbox: uncheck what you don't need (for example copy only your scores, if your maps are already in stable). Uncheck what you don't want in each list, then click **Copy…** and confirm.
-4. Launch osu!stable, go to song select and press **F5**: stable re-reads the Songs folder and adds the new maps.
-   (With the `.osz` format, stable imports them by itself on startup, no F5 needed.)
-   Your scores are in the **Local Ranking** leaderboard of song select, your skins in **Options > Skin**.
+<p align="center">
+  <img src="docs/demo.gif" width="880" alt="lazer2stable scans both libraries, lists what's missing, copies it and shows a summary">
+</p>
 
-Changed your mind? **Undo the last copy** (at the top of the list, or on the summary screen) removes from stable exactly what that copy added.
+## Why
 
-If osu! is open, lazer2stable tells you and can close it for you before copying. The interface follows your Windows language; switch with **FR / EN / RU** in the title bar.
+You play on lazer now. You downloaded hundreds of maps there, set scores, collected skins. Then you open osu!stable and none of it is there.
 
-## What it does
+lazer can import *from* stable, but nothing goes the other way except exporting things one by one. **lazer2stable compares both libraries and copies everything stable is missing in one go**: maps, collections, scores with their replays, and skins. It never touches lazer, and you can undo the copy afterwards.
 
-- **lazer is never modified.** Its database (`client.realm`) is read from a temporary copy.
-- **Only missing maps are copied.** A map counts as already in stable when Songs has the same set ID, the same difficulty ID, or an identical `.osu` file, including in an `.osz` that stable hasn't imported yet.
-- **Safe copies.** Maps are written to a temporary folder and then moved into Songs (as `123456 Artist - Title`), so a stopped copy never leaves a half-copied map. You can stop at any time.
-- **Collections (optional).** Your lazer collections are merged into stable's `collection.db`: collections with the same name get the missing maps, nothing is removed, and the previous file is backed up next to it (`collection.db.lazer2stable-backup-…`).
-- **Scores (optional).** Your lazer scores go to stable's Local leaderboard with their replays: the replay is added to `Data\r` and the score to `scores.db`, which is backed up first (`scores.db.lazer2stable-backup-…`); nothing is removed. Scores you played in lazer are converted: the score is lazer's "Classic" display, and stable recalculates accuracy and rank. Their replays may play back a little differently in stable, because lazer judges sliders differently. A score whose map isn't in stable is copied together with its map. Replays of other players that you downloaded or watched in lazer are left out unless you include them.
-- **Skins (optional).** Your lazer skins are copied to stable's `Skins` folder, one folder each, named as they were in stable when lazer knows that name. Skins already in stable are recognised, even under another folder name. Skins made in lazer's own skin editor (argon, triangles…) are left out: stable can't read them.
-- **Undo.** The last copy is recorded in `%LOCALAPPDATA%\lazer2stable`. Undoing it removes exactly what it added: maps and skins go to the Recycle Bin, and only the added scores and collection entries are taken out of `scores.db` and `collection.db` (each backed up first), so whatever you did in stable since then is kept.
-- **A report** of every copy is written to `%LOCALAPPDATA%\lazer2stable\reports`. Your folder choices and language are remembered in `%APPDATA%\lazer2stable`.
+## Quick start
 
-<p align="center"><img src="docs/screenshot-scores.png" width="820" alt="lazer2stable: list of scores to copy"></p>
+1. **[Download `lazer2stable.exe`](https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe)** and run it. Nothing to install.
+2. It finds your lazer and stable folders on its own and scans both. Review the lists and uncheck anything you don't want.
+3. Click **Copy**. Then in osu!stable, go to song select and press **F5**.
 
-<p align="center"><img src="docs/screenshot-skins.png" width="400" alt="Skins to copy, with previews"> <img src="docs/screenshot-done.png" width="400" alt="Summary after copying"></p>
+That's it. Your scores are in the **Local** leaderboard and your skins in **Options › Skin**.
 
-## Skipped maps and scores
+> [!NOTE]
+> The exe isn't code-signed yet, so Windows may say *"Windows protected your PC"*. Click **More info**, then **Run anyway**. Each release lists the file's SHA-256 if you want to check it.
 
-- **Edited in the lazer editor.** lazer saves them in a format (`v128`) that stable can't read. Export them from the lazer editor with the stable-compatible export.
-- **lazer-only game modes** (custom rulesets): stable can't play them.
-- **Deleted or built-in lazer content**: never shown.
-- **Scores with lazer-only mods**, or mods set up differently than in stable (DT at 1.3x, for example): stable couldn't replay them.
-- **Scores whose map isn't in stable** and can't be copied there, or whose map stable has in a different version.
-- **Skins made in lazer** (based on argon or triangles): stable can't read them.
+## What gets copied
 
-## Build from source
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshot-list.png" alt="Beatmaps to copy"></td>
+    <td width="50%"><img src="docs/screenshot-scores.png" alt="Scores to copy"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshot-skins.png" alt="Skins to copy, with previews"></td>
+    <td width="50%"><img src="docs/screenshot-done.png" alt="Summary after copying"></td>
+  </tr>
+</table>
 
-Requires the .NET 8 SDK.
+| | Goes to | Counted as already in stable when… |
+|---|---|---|
+| 🎵 **Beatmaps** | `Songs\123456 Artist - Title`, or `.osz` files stable imports on startup | Songs has the same set ID, the same difficulty ID, or an identical `.osu` file (even inside an `.osz` stable hasn't imported yet) |
+| 📁 **Collections** | merged into `collection.db` | a collection with the same name exists: it gets the missing maps, nothing is removed |
+| 🏆 **Scores** | `scores.db` (Local leaderboard) + replays in `Data\r` | the same replay or the same play is already there |
+| 🎨 **Skins** | `Skins\<name>`, one folder per skin | a skin with the same folder name or the same `skin.ini` exists |
 
-```
-dotnet publish lazer2stable.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o publish
-```
+Each part has its own checkbox. Already have your maps in stable? Uncheck **Beatmaps** and copy only your scores. Want only skins? Same idea.
 
-lazer2stable reads lazer's database with the same Realm version as lazer (`RealmVersion` in `lazer2stable.csproj`). If lazer ever moves to a newer Realm, align it with `osu.Game/osu.Game.csproj` in [ppy/osu](https://github.com/ppy/osu).
+**A few things stay in lazer**, because stable can't read them. The app shows each one with the reason:
 
-### Publishing a release
+- maps edited in the lazer editor (saved in a format stable can't open; use the editor's stable-compatible export),
+- custom game modes,
+- scores with lazer-only mods, or mods set differently than stable allows (DT at 1.3x, for example),
+- skins made in lazer's skin editor (argon, triangles),
+- replays of other players you watched in lazer, unless you tick **Include replays from other players**.
 
-1. Raise `<Version>` in `lazer2stable.csproj` (and `version` in `app.manifest`), and write the notes in `.github/release-notes.md`.
-2. Push to `main`, then in **Actions** → **Release** → **Run workflow**.
+## Your data is safe
 
-The workflow builds `lazer2stable.exe`, creates the tag (`v2.5` for version `2.5.0`), and publishes the release with the exe and its SHA-256. It stops if that release already exists.
+- **lazer is never modified.** Its database is read from a temporary copy.
+- **Nothing in stable is removed or overwritten.** `scores.db` and `collection.db` are backed up next to the original before every change.
+- **No half-copied maps.** Each map is written to a temporary folder, then moved into Songs. You can stop at any time.
+- **Undo the last copy** in one click. It removes exactly what that copy added: maps and skins go to the Recycle Bin, and anything you did in stable since then is kept.
+- **osu! open?** lazer2stable notices and offers to close it properly first, so stable doesn't overwrite the new scores and collections when it quits.
+- **Offline.** It sends nothing anywhere and collects no data.
 
-### Project layout
+## FAQ
 
-| Folder | Content |
-|---|---|
-| `src/Core` | Reading lazer (Realm), scanning Songs, comparing, copying, `collection.db`, scores (`scores.db`, `.osr` replays), skins, undo, translations (`Strings.cs`) |
-| `src/App` | Avalonia interface |
-| `tests/FakeLibrary` | Generates a fake lazer library (maps, collections, scores, skins) + stable install covering edge cases |
-| `tests/Screens` | Renders every screen to PNG in each language, and runs a full copy and its undo (`e2e`) headless |
-| `tests/RealDbCheck` | Reads a real lazer database and prints a summary |
+<details>
+<summary><b>Will my lazer scores give me pp or show up online?</b></summary>
+<br>
+No. They go to stable's <b>Local</b> leaderboard only, nothing is submitted. Scores you played in lazer are converted: the score is lazer's "Classic" value and stable recalculates accuracy and rank. Their replays may play back slightly differently in stable, because lazer judges sliders differently.
+</details>
 
-### Translations
+<details>
+<summary><b>Can I run it again later?</b></summary>
+<br>
+Yes, as often as you like. Each run only copies what's new since last time.
+</details>
 
-All texts are in `src/Core/Strings.cs`, one line per text with the French, English and Russian versions. Plurals use `|` between forms (singular|plural, or 1|2-4|5+ in Russian). To add a language, add a value to `Lang` in `Loc.cs` and a column in `Strings.cs`.
+<details>
+<summary><b>My lazer or stable is in a custom folder.</b></summary>
+<br>
+lazer2stable follows lazer's custom storage location (<code>storage.ini</code>) and stable's <code>BeatmapDirectory</code> setting. If it still can't find a folder, click <b>Change</b> and pick it.
+</details>
+
+<details>
+<summary><b>A score was skipped. Why?</b></summary>
+<br>
+Open the <b>Skipped</b> tab of the Scores list: each score shows its reason. Usually the map isn't in stable and can't be copied (edited in lazer, or stable has another version of it), or the score uses mods stable doesn't have.
+</details>
+
+<details>
+<summary><b>I copied by mistake.</b></summary>
+<br>
+Click <b>Undo the last copy</b> at the top of the list or on the summary screen. Maps and skins go to the Recycle Bin, and the added scores and collection entries are taken back out.
+</details>
+
+<details>
+<summary><b>Where are my settings and reports?</b></summary>
+<br>
+Settings: <code>%APPDATA%\lazer2stable</code>. A report of every copy and the undo record: <code>%LOCALAPPDATA%\lazer2stable</code>. Nothing is stored anywhere else.
+</details>
+
+<details>
+<summary><b>Something went wrong.</b></summary>
+<br>
+<a href="https://github.com/exotiquepy/lazer2stable/issues/new">Open an issue</a> with what you did and the error text. If the app showed an error file, attach it.
+</details>
 
 ## Français
 
-lazer2stable copie vers osu!stable les beatmaps, les scores et les skins de osu!lazer qu'il n'a pas encore. lazer n'est jamais modifié, seules les maps absentes de stable sont copiées, et tes collections peuvent être ajoutées (l'ancien `collection.db` est sauvegardé). Les scores vont dans le classement Local de stable avec leur replay (l'ancien `scores.db` est sauvegardé) ; décoche **Beatmaps** pour ne copier que les scores. Les skins vont dans le dossier Skins de stable. **Annuler la dernière copie** retire de stable exactement ce qu'elle avait ajouté. Après la copie, appuie sur **F5** dans la sélection des musiques de stable. L'interface est en français si Windows l'est ; sinon, choisis **FR** dans la barre de titre.
+**lazer2stable copie vers osu!stable tout ce que lazer a et que stable n'a pas** : maps, collections, scores avec leurs replays, et skins. lazer n'est jamais modifié, rien n'est supprimé dans stable, `scores.db` et `collection.db` sont sauvegardés avant chaque modification, et **Annuler la dernière copie** retire exactement ce qui a été ajouté.
+
+[Télécharge `lazer2stable.exe`](https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe), lance-le, décoche ce que tu ne veux pas, clique sur **Copier**, puis appuie sur **F5** dans la sélection des musiques de stable. Tes maps déjà dans stable ? Décoche **Beatmaps** pour ne copier que les scores. L'interface est en français si Windows l'est ; sinon, choisis **FR** dans la barre de titre.
 
 ## Русский
 
-lazer2stable копирует в osu!stable карты, рекорды и скины из osu!lazer, которых там ещё нет. lazer никогда не изменяется, копируются только недостающие карты, а коллекции можно добавить (старый `collection.db` сохраняется). Рекорды попадают в локальную таблицу stable вместе с реплеями (старый `scores.db` сохраняется); сними отметку с **Карты**, чтобы скопировать только рекорды. Скины попадают в папку Skins в stable. **Отменить последнее копирование** убирает из stable ровно то, что было добавлено. После копирования нажми **F5** в меню выбора песен в stable. Интерфейс на русском, если Windows на русском; иначе выбери **RU** в заголовке окна.
+**lazer2stable копирует в osu!stable всё, что есть в lazer, но нет в stable**: карты, коллекции, рекорды с реплеями и скины. lazer никогда не изменяется, в stable ничего не удаляется, `scores.db` и `collection.db` сохраняются перед каждым изменением, а **Отменить последнее копирование** убирает ровно то, что было добавлено.
 
-## Privacy
+[Скачай `lazer2stable.exe`](https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe), запусти, сними отметки с ненужного, нажми **Скопировать**, затем **F5** в меню выбора песен stable. Карты уже в stable? Сними отметку с **Карты**, чтобы скопировать только рекорды. Интерфейс на русском, если Windows на русском; иначе выбери **RU** в заголовке окна.
 
-lazer2stable works offline: it sends nothing anywhere and collects no data. It only reads your osu! folders and writes to osu!stable's folders when you confirm a copy. Settings, reports and the record of the last copy stay on your computer in `%APPDATA%\lazer2stable` and `%LOCALAPPDATA%\lazer2stable`.
+## Contributing
 
-## Credits and license
+Bug reports, translations and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) to build it, run the tests and add a language.
 
-Developed by **Exotique**, released under the [MIT license](LICENSE). Built with Avalonia, Realm and CommunityToolkit.Mvvm, see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+## License
 
-osu! is a trademark of ppy Pty Ltd. lazer2stable is an independent community tool, not affiliated with or endorsed by ppy.
+[MIT](LICENSE) © Exotique. Built with [Avalonia](https://avaloniaui.net), [Realm](https://github.com/realm/realm-dotnet) and [CommunityToolkit.Mvvm](https://github.com/CommunityToolkit/dotnet), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+<sub>osu! is a trademark of ppy Pty Ltd. lazer2stable is an independent community tool, not affiliated with or endorsed by ppy.</sub>
