@@ -4,6 +4,8 @@
   <a href="https://github.com/exotiquepy/lazer2stable/releases/latest/download/lazer2stable.exe"><img src="https://img.shields.io/badge/Download-lazer2stable.exe-FF62A8?style=for-the-badge&logo=windows&logoColor=white" alt="Download lazer2stable.exe"></a>
 </p>
 
+<p align="center"><img src="https://img.shields.io/github/v/release/exotiquepy/lazer2stable?style=flat-square&color=FF62A8&label=latest" alt="Latest release"></p>
+
 <p align="center"><a href="#faq">FAQ</a> · <a href="#français">Français</a> · <a href="#русский">Русский</a></p>
 
 I play on lazer but still use stable, and none of my lazer maps or scores were there. So I made this.
